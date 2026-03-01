@@ -58,6 +58,15 @@ function getSkyObject(theme, hour) {
   return { icon, left, top };
 }
 
+function hasMeaningfulState(state) {
+  return (
+    (Array.isArray(state.bankTasks) && state.bankTasks.length > 0) ||
+    (Array.isArray(state.wheelTasks) && state.wheelTasks.length > 0) ||
+    state.isMuted === true ||
+    (typeof state.themeMode === "string" && state.themeMode !== "auto")
+  );
+}
+
 function buildSliceLabelStyle(index, total) {
   const angleStep = 360 / total;
   const midAngleFromTop = index * angleStep + angleStep / 2;
@@ -112,6 +121,10 @@ function App() {
   );
   const [clockHour, setClockHour] = useState(() => new Date().getHours());
   const [backendSyncReady, setBackendSyncReady] = useState(false);
+  const hasLocalMeaningfulState = useMemo(
+    () => hasMeaningfulState(savedState),
+    [savedState]
+  );
   const inputIsHebrew = isHebrewText(newTaskLabel);
   const wheelRef = useRef(null);
   const spinTimeoutRef = useRef(null);
@@ -178,17 +191,22 @@ function App() {
         }
 
         const state = data.state;
-        if (Array.isArray(state.bankTasks)) {
-          setBankTasks(state.bankTasks);
-        }
-        if (Array.isArray(state.wheelTasks)) {
-          setWheelTasks(state.wheelTasks);
-        }
-        if (typeof state.isMuted === "boolean") {
-          setIsMuted(state.isMuted);
-        }
-        if (THEME_OPTIONS.includes(state.themeMode)) {
-          setThemeMode(state.themeMode);
+        const shouldApplyBackend =
+          hasMeaningfulState(state) || !hasLocalMeaningfulState;
+
+        if (shouldApplyBackend) {
+          if (Array.isArray(state.bankTasks)) {
+            setBankTasks(state.bankTasks);
+          }
+          if (Array.isArray(state.wheelTasks)) {
+            setWheelTasks(state.wheelTasks);
+          }
+          if (typeof state.isMuted === "boolean") {
+            setIsMuted(state.isMuted);
+          }
+          if (THEME_OPTIONS.includes(state.themeMode)) {
+            setThemeMode(state.themeMode);
+          }
         }
       } catch {
         // Keep local state if backend is unavailable.
