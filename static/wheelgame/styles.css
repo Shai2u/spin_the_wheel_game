@@ -56,14 +56,80 @@ body {
   margin: 0 0 10px;
 }
 
+.task-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.task-input {
+  border: 2px solid #ffffff;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font: inherit;
+  background: #ffffff;
+}
+
+.task-input:focus {
+  outline: none;
+  border-color: #70a1ff;
+}
+
+.add-btn,
+.trash-btn {
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.add-btn {
+  background: #6ee7b7;
+}
+
+.trash-btn {
+  background: #ffd6e0;
+}
+
+.task-error {
+  margin: 6px 0;
+  color: #c81d25;
+  font-weight: 700;
+}
+
 .task-list {
   margin-top: 12px;
-  padding-left: 18px;
+  padding-left: 0;
+  list-style: none;
 }
 
 .task-list li {
-  font-size: 1.1rem;
   margin: 8px 0;
+}
+
+.task-item {
+  width: 100%;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.task-item.is-selected {
+  border-color: #70a1ff;
+  background: #e8f0ff;
+}
+
+.empty-state {
+  font-size: 1rem;
+  opacity: 0.75;
 }
 
 .pill {
