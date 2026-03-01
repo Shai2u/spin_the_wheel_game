@@ -244,6 +244,7 @@ body {
 .rtl-text {
   direction: rtl;
   text-align: right;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
 }
 
 .ltr-text {
