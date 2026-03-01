@@ -394,7 +394,7 @@ function App() {
     <main className="app-shell">
       <section className="wheel-area">
         <div className="wheel-headline">
-          <h1>Spin The Wheel</h1>
+          <h1>Spin the Yarin!</h1>
           <p>Drag tasks into slices. Drag labels back to the bank to remove.</p>
           <span className="pill">Drag & Drop enabled</span>
           <div className="wheel-controls">
