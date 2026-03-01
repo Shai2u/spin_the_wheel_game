@@ -99,7 +99,25 @@ body.theme-night {
   box-shadow: 0 8px 16px #ff6b6b55;
 }
 
+.reset-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font: inherit;
+  font-size: 0.98rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 8px 16px #6366f155;
+}
+
 .spin-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.reset-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }

@@ -587,6 +587,19 @@ function App() {
     setDraggingTask(null);
   }
 
+  function resetWheel() {
+    if (isSpinning) return;
+    if (!wheelTasks.length) {
+      setError("Wheel is already empty.");
+      return;
+    }
+
+    setBankTasks((current) => [...current, ...wheelTasks]);
+    setWheelTasks([]);
+    setWinnerTaskId(null);
+    setError("");
+  }
+
   return (
     <main className="app-shell">
       <section className="wheel-area">
@@ -602,6 +615,14 @@ function App() {
               disabled={isSpinning}
             >
               {isSpinning ? "Spinning..." : "Spin"}
+            </button>
+            <button
+              type="button"
+              className="reset-btn"
+              onClick={resetWheel}
+              disabled={isSpinning || !wheelTasks.length}
+            >
+              Reset Wheel
             </button>
             <label className="theme-label" htmlFor="theme-select">
               Theme
