@@ -123,6 +123,12 @@ body {
   border-right: 14px solid transparent;
   border-top: 26px solid #c1121f;
   filter: drop-shadow(0 2px 3px #00000055);
+  transform-origin: 50% 0%;
+  transition: transform 70ms ease-out;
+}
+
+.wheel-needle.is-kick {
+  transform: translateX(-50%) rotate(-12deg);
 }
 
 .placeholder-wheel.drop-active,

@@ -92,9 +92,12 @@ function App() {
   const [spinDurationMs, setSpinDurationMs] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const [winnerTaskId, setWinnerTaskId] = useState(null);
+  const [needleKick, setNeedleKick] = useState(false);
   const inputIsHebrew = isHebrewText(newTaskLabel);
   const wheelRef = useRef(null);
   const spinTimeoutRef = useRef(null);
+  const frictionIntervalRef = useRef(null);
+  const needleKickTimeoutRef = useRef(null);
   const dragSpinRef = useRef({
     active: false,
     startAngle: 0,
@@ -134,8 +137,63 @@ function App() {
       if (spinTimeoutRef.current) {
         clearTimeout(spinTimeoutRef.current);
       }
+      if (frictionIntervalRef.current) {
+        clearInterval(frictionIntervalRef.current);
+      }
+      if (needleKickTimeoutRef.current) {
+        clearTimeout(needleKickTimeoutRef.current);
+      }
     };
   }, []);
+
+  function stopNeedleFriction() {
+    if (frictionIntervalRef.current) {
+      clearInterval(frictionIntervalRef.current);
+      frictionIntervalRef.current = null;
+    }
+    if (needleKickTimeoutRef.current) {
+      clearTimeout(needleKickTimeoutRef.current);
+      needleKickTimeoutRef.current = null;
+    }
+    setNeedleKick(false);
+  }
+
+  function triggerNeedleKick(durationMs) {
+    setNeedleKick(true);
+    if (needleKickTimeoutRef.current) {
+      clearTimeout(needleKickTimeoutRef.current);
+    }
+    needleKickTimeoutRef.current = setTimeout(() => {
+      setNeedleKick(false);
+      needleKickTimeoutRef.current = null;
+    }, durationMs);
+  }
+
+  function startNeedleFriction(totalDurationMs) {
+    stopNeedleFriction();
+    const frictionWindowMs = 1900;
+    const startedAt = performance.now();
+
+    frictionIntervalRef.current = setInterval(() => {
+      const elapsed = performance.now() - startedAt;
+      const remaining = totalDurationMs - elapsed;
+      if (remaining <= 0) {
+        stopNeedleFriction();
+        return;
+      }
+      if (remaining > frictionWindowMs) {
+        return;
+      }
+
+      // As the wheel slows down near the end, the needle "catches" slices more often.
+      const endProgress = (frictionWindowMs - remaining) / frictionWindowMs;
+      const kickChance = 0.25 + endProgress * 0.7;
+      if (Math.random() < kickChance) {
+        const kickMs = 55 + endProgress * 65;
+        triggerNeedleKick(kickMs);
+      }
+    }, 75);
+  }
 
   function normalizeDegrees(value) {
     return ((value % 360) + 360) % 360;
@@ -154,6 +212,7 @@ function App() {
     if (winnerIndex >= 0 && wheelTasks[winnerIndex]) {
       setWinnerTaskId(wheelTasks[winnerIndex].id);
     }
+    stopNeedleFriction();
     setIsSpinning(false);
   }
 
@@ -171,6 +230,7 @@ function App() {
     setSpinDurationMs(durationMs);
     setIsSpinning(true);
     setWheelRotation(targetRotation);
+    startNeedleFriction(durationMs);
 
     spinTimeoutRef.current = setTimeout(() => {
       finishSpin(targetRotation);
@@ -429,7 +489,7 @@ function App() {
           onDragLeave={() => setWheelDropActive(false)}
           onDrop={onWheelDrop}
         >
-          <div className="wheel-needle" />
+          <div className={`wheel-needle ${needleKick ? "is-kick" : ""}`} />
           <div
             className="wheel-disc"
             style={{
