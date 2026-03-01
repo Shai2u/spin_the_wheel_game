@@ -63,7 +63,7 @@ body.theme-night {
   display: grid;
   align-content: start;
   justify-items: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 0;
   height: 100%;
   overflow: hidden;
@@ -179,7 +179,7 @@ body.theme-night {
 }
 
 .placeholder-wheel {
-  width: min(calc((100dvh - 460px) * 0.75), calc((100vw - 520px) * 0.72));
+  width: clamp(165px, min(calc((100dvh - 620px) * 0.75), calc((100vw - 560px) * 0.75)), 390px);
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 6px dashed var(--accent);
@@ -188,15 +188,16 @@ body.theme-night {
   text-align: center;
   transition: transform 120ms ease, box-shadow 120ms ease;
   touch-action: none;
+  align-self: start;
 }
 
 .sky-deco {
   width: 100%;
-  max-width: min(70.4vh, calc(100vw - 488px));
-  height: 88px;
+  max-width: clamp(165px, min(calc((100dvh - 620px) * 0.75), calc((100vw - 560px) * 0.75)), 390px);
+  height: 74px;
   position: relative;
   pointer-events: none;
-  margin-bottom: -8px;
+  margin-bottom: -4px;
 }
 
 .sky-object {
