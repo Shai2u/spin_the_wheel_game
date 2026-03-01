@@ -22,9 +22,9 @@ body {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 16px;
-  padding: 24px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 12px;
+  padding: 12px;
 }
 
 .wheel-area,
@@ -32,7 +32,7 @@ body {
   background: var(--card);
   border-radius: 20px;
   box-shadow: 0 10px 20px #23395b22;
-  padding: 20px;
+  padding: 14px;
 }
 
 .task-bank {
@@ -41,18 +41,32 @@ body {
 
 .wheel-area {
   display: grid;
-  place-items: center;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+}
+
+.wheel-headline {
+  text-align: center;
+  max-width: 720px;
+}
+
+.wheel-headline h1 {
+  margin: 0 0 4px;
+}
+
+.wheel-headline p {
+  margin: 0 0 6px;
 }
 
 .placeholder-wheel {
-  width: min(62vh, 500px);
+  width: min(88vh, calc(100vw - 360px));
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 10px dashed var(--accent);
-  display: grid;
-  place-items: center;
+  position: relative;
+  overflow: hidden;
   text-align: center;
-  padding: 16px;
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
@@ -163,7 +177,7 @@ body {
 }
 
 .task-item:active,
-.wheel-task-chip:active {
+.slice-label:active {
   cursor: grabbing;
 }
 
@@ -187,22 +201,32 @@ body {
   opacity: 0.75;
 }
 
-.wheel-task-list {
-  list-style: none;
-  padding-left: 0;
-  margin: 12px 0 0;
-  display: grid;
-  gap: 6px;
+.wheel-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  background: #ffffffcc;
+  border-radius: 16px;
+  padding: 12px;
+  margin: 0;
+  font-weight: 700;
 }
 
-.wheel-task-chip {
+.slice-label {
+  position: absolute;
+  max-width: 30%;
   border: 0;
-  border-radius: 999px;
-  padding: 6px 10px;
+  border-radius: 12px;
+  padding: 4px 8px;
   font: inherit;
-  font-size: 0.95rem;
-  background: #ffffffcc;
+  font-size: 0.88rem;
+  background: #ffffffd9;
   cursor: grab;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pill {
@@ -211,4 +235,14 @@ body {
   background: var(--accent-2);
   padding: 4px 12px;
   font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .placeholder-wheel {
+    width: min(82vw, 82vh);
+  }
 }

@@ -20,6 +20,23 @@ function isHebrewText(value) {
   return /[\u0590-\u05FF]/.test(value);
 }
 
+function buildSliceLabelStyle(index, total) {
+  const angleStep = 360 / total;
+  const midAngle = index * angleStep + angleStep / 2;
+  const radians = (midAngle * Math.PI) / 180;
+  const radiusPercent = 33;
+  const left = 50 + Math.cos(radians) * radiusPercent;
+  const top = 50 + Math.sin(radians) * radiusPercent;
+  const readableRotation =
+    midAngle > 90 && midAngle < 270 ? midAngle + 180 : midAngle;
+
+  return {
+    left: `${left}%`,
+    top: `${top}%`,
+    transform: `translate(-50%, -50%) rotate(${readableRotation}deg)`,
+  };
+}
+
 function App() {
   const starterTasks = useMemo(
     () => [
@@ -226,6 +243,12 @@ function App() {
   return (
     <main className="app-shell">
       <section className="wheel-area">
+        <div className="wheel-headline">
+          <h1>Spin The Wheel</h1>
+          <p>Drag tasks into slices. Drag labels back to the bank to remove.</p>
+          <span className="pill">Drag & Drop enabled</span>
+        </div>
+
         <div
           className={`placeholder-wheel ${wheelDropActive ? "drop-active" : ""}`}
           style={{ background: wheelGradient }}
@@ -238,36 +261,27 @@ function App() {
           onDragLeave={() => setWheelDropActive(false)}
           onDrop={onWheelDrop}
         >
-          <div>
-            <h1>Spin The Wheel</h1>
-            <p>
-              Drag tasks here to add slices. Drag out to the bank to remove.
-            </p>
-            <span className="pill">Drag & Drop enabled</span>
-            <ul className="wheel-task-list">
-              {wheelTasks.length ? (
-                wheelTasks.map((task) => (
-                  <li key={task.id}>
-                    <button
-                      type="button"
-                      className={`wheel-task-chip ${
-                        isHebrewText(task.label) ? "rtl-text" : "ltr-text"
-                      }`}
-                      draggable
-                      onDragStart={() => onTaskDragStart("wheel", task.id)}
-                      onDragEnd={onTaskDragEnd}
-                      dir={isHebrewText(task.label) ? "rtl" : "ltr"}
-                      title="Drag back to task bank"
-                    >
-                      {task.label}
-                    </button>
-                  </li>
-                ))
-              ) : (
-                <li className="empty-state">Wheel is empty. Drop tasks here.</li>
-              )}
-            </ul>
-          </div>
+          {wheelTasks.length ? (
+            wheelTasks.map((task, index) => (
+              <button
+                key={task.id}
+                type="button"
+                className={`slice-label ${
+                  isHebrewText(task.label) ? "rtl-text" : "ltr-text"
+                }`}
+                style={buildSliceLabelStyle(index, wheelTasks.length)}
+                draggable
+                onDragStart={() => onTaskDragStart("wheel", task.id)}
+                onDragEnd={onTaskDragEnd}
+                dir={isHebrewText(task.label) ? "rtl" : "ltr"}
+                title="Drag back to task bank"
+              >
+                {task.label}
+              </button>
+            ))
+          ) : (
+            <p className="wheel-empty-state">Wheel is empty. Drop tasks here.</p>
+          )}
         </div>
       </section>
 
