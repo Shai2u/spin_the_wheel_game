@@ -6,6 +6,10 @@ function normalizeTaskLabel(value) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function isHebrewText(value) {
+  return /[\u0590-\u05FF]/.test(value);
+}
+
 function App() {
   const starterTasks = useMemo(
     () => [
@@ -32,6 +36,7 @@ function App() {
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [error, setError] = useState("");
+  const inputIsHebrew = isHebrewText(newTaskLabel);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(bankTasks));
@@ -94,7 +99,7 @@ function App() {
 
         <form className="task-input-row" onSubmit={addTask}>
           <input
-            className="task-input"
+            className={`task-input ${inputIsHebrew ? "rtl-text" : "ltr-text"}`}
             type="text"
             placeholder="Write a new task..."
             value={newTaskLabel}
@@ -103,6 +108,7 @@ function App() {
               if (error) setError("");
             }}
             aria-label="New task"
+            dir={inputIsHebrew ? "rtl" : "ltr"}
           />
           <button className="add-btn" type="submit">
             Add
@@ -128,11 +134,12 @@ function App() {
                   type="button"
                   className={`task-item ${
                     selectedTaskId === task.id ? "is-selected" : ""
-                  }`}
+                  } ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
                   onClick={() => {
                     setSelectedTaskId(task.id);
                     setError("");
                   }}
+                  dir={isHebrewText(task.label) ? "rtl" : "ltr"}
                 >
                   {task.label}
                 </button>

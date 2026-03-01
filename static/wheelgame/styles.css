@@ -35,6 +35,10 @@ body {
   padding: 20px;
 }
 
+.task-bank {
+  overflow: hidden;
+}
+
 .wheel-area {
   display: grid;
   place-items: center;
@@ -58,7 +62,7 @@ body {
 
 .task-input-row {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   margin: 10px 0 4px;
 }
@@ -78,7 +82,7 @@ body {
 
 .add-btn,
 .trash-btn {
-  border: 0;
+  border: 2px solid transparent;
   border-radius: 14px;
   padding: 10px 12px;
   font: inherit;
@@ -91,7 +95,14 @@ body {
 }
 
 .trash-btn {
-  background: #ffd6e0;
+  background: #ff4d6d;
+  color: #fff;
+  border-color: #c9184a;
+  box-shadow: 0 4px 10px #c9184a55;
+}
+
+.trash-btn:hover {
+  background: #d90429;
 }
 
 .task-error {
@@ -125,6 +136,16 @@ body {
 .task-item.is-selected {
   border-color: #70a1ff;
   background: #e8f0ff;
+}
+
+.rtl-text {
+  direction: rtl;
+  text-align: right;
+}
+
+.ltr-text {
+  direction: ltr;
+  text-align: left;
 }
 
 .empty-state {
