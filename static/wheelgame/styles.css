@@ -49,11 +49,20 @@ body {
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 10px dashed var(--accent);
-  background: radial-gradient(circle at 40% 30%, #fffde7, #ffe8d6);
   display: grid;
   place-items: center;
   text-align: center;
   padding: 16px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.placeholder-wheel.drop-active,
+.task-bank.drop-active {
+  box-shadow: 0 0 0 4px #70a1ff inset;
+}
+
+.placeholder-wheel.drop-active {
+  transform: scale(1.01);
 }
 
 .task-bank h2 {
@@ -153,6 +162,11 @@ body {
   cursor: pointer;
 }
 
+.task-item:active,
+.wheel-task-chip:active {
+  cursor: grabbing;
+}
+
 .task-item.is-selected {
   border-color: #70a1ff;
   background: #e8f0ff;
@@ -171,6 +185,24 @@ body {
 .empty-state {
   font-size: 1rem;
   opacity: 0.75;
+}
+
+.wheel-task-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.wheel-task-chip {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  background: #ffffffcc;
+  cursor: grab;
 }
 
 .pill {
