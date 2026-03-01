@@ -45,6 +45,15 @@ function getAutoThemeByHour(hour) {
   return "night";
 }
 
+function getRandomUnit() {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const arr = new Uint32Array(1);
+    window.crypto.getRandomValues(arr);
+    return arr[0] / 4294967296;
+  }
+  return Math.random();
+}
+
 function getSkyObject(theme, hour) {
   function arcPosition(progress) {
     const clamped = Math.min(1, Math.max(0, progress));
@@ -504,9 +513,30 @@ function App() {
     }
     if (isSpinning) return;
 
-    const turns = 6 + Math.random() * 3;
-    const targetRotation = wheelRotation + turns * 360 + Math.random() * 360;
-    const durationMs = 4200 + Math.random() * 1400;
+    const sliceCount = wheelTasks.length;
+    const angleStep = 360 / sliceCount;
+    let winnerIndex = Math.floor(getRandomUnit() * sliceCount);
+
+    // Slight anti-streak smoothing so repeated immediate winners are less frequent.
+    if (sliceCount > 2 && winnerTaskId) {
+      const lastWinnerIndex = wheelTasks.findIndex(
+        (task) => task.id === winnerTaskId
+      );
+      if (winnerIndex === lastWinnerIndex && getRandomUnit() < 0.75) {
+        winnerIndex = (winnerIndex + 1 + Math.floor(getRandomUnit() * (sliceCount - 1))) % sliceCount;
+      }
+    }
+
+    const centerAngleFromTop = winnerIndex * angleStep + angleStep / 2;
+    const jitter = (getRandomUnit() * 2 - 1) * (angleStep * 0.18);
+    const localTargetFromTop = centerAngleFromTop + jitter;
+    const targetNormalized = normalizeDegrees(360 - localTargetFromTop);
+    const currentNormalized = normalizeDegrees(wheelRotation);
+    const clockwiseDelta = (targetNormalized - currentNormalized + 360) % 360;
+
+    const turns = 7 + getRandomUnit() * 8;
+    const targetRotation = wheelRotation + turns * 360 + clockwiseDelta;
+    const durationMs = 4300 + getRandomUnit() * 2600;
     spinTo(targetRotation, durationMs);
   }
 
