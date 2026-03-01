@@ -61,18 +61,24 @@ body {
 }
 
 .task-input-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 8px;
+  display: block;
   margin: 10px 0 4px;
 }
 
 .task-input {
+  width: 100%;
   border: 2px solid #ffffff;
   border-radius: 14px;
   padding: 10px 12px;
   font: inherit;
   background: #ffffff;
+}
+
+.task-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 4px;
 }
 
 .task-input:focus {
@@ -81,6 +87,7 @@ body {
 }
 
 .add-btn,
+.edit-btn,
 .trash-btn {
   border: 2px solid transparent;
   border-radius: 14px;
@@ -94,11 +101,24 @@ body {
   background: #6ee7b7;
 }
 
+.edit-btn {
+  background: #8ec5ff;
+  border-color: #3b82f6;
+}
+
 .trash-btn {
   background: #ff4d6d;
   color: #fff;
   border-color: #c9184a;
   box-shadow: 0 4px 10px #c9184a55;
+}
+
+.add-btn:hover {
+  background: #4ade80;
+}
+
+.edit-btn:hover {
+  background: #60a5fa;
 }
 
 .trash-btn:hover {
