@@ -93,6 +93,7 @@ function App() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [winnerTaskId, setWinnerTaskId] = useState(null);
   const [needleKick, setNeedleKick] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const inputIsHebrew = isHebrewText(newTaskLabel);
   const wheelRef = useRef(null);
   const spinTimeoutRef = useRef(null);
@@ -121,6 +122,10 @@ function App() {
     });
     return `conic-gradient(${slices.join(", ")})`;
   }, [wheelTasks]);
+  const winnerTaskLabel = useMemo(
+    () => wheelTasks.find((task) => task.id === winnerTaskId)?.label || "",
+    [winnerTaskId, wheelTasks]
+  );
 
   useEffect(() => {
     localStorage.setItem(
@@ -134,6 +139,9 @@ function App() {
 
   useEffect(() => {
     return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
       if (spinTimeoutRef.current) {
         clearTimeout(spinTimeoutRef.current);
       }
@@ -145,6 +153,47 @@ function App() {
       }
     };
   }, []);
+
+  function getVoiceForLang(lang) {
+    if (!window.speechSynthesis) {
+      return null;
+    }
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) {
+      return null;
+    }
+    return (
+      voices.find((voice) =>
+        voice.lang.toLowerCase().startsWith(lang.toLowerCase())
+      ) || null
+    );
+  }
+
+  function speakWinnerText(text) {
+    if (!text || !window.speechSynthesis) {
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    const lang = isHebrewText(text) ? "he-IL" : "en-US";
+    const voice = getVoiceForLang(lang);
+    utterance.lang = lang;
+    if (voice) {
+      utterance.voice = voice;
+    }
+    utterance.rate = 0.93;
+    utterance.pitch = 1.08;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }
+
+  useEffect(() => {
+    if (!winnerTaskLabel || isMuted) {
+      return;
+    }
+    speakWinnerText(winnerTaskLabel);
+  }, [winnerTaskLabel, isMuted]);
 
   function stopNeedleFriction() {
     if (frictionIntervalRef.current) {
@@ -469,10 +518,25 @@ function App() {
           </div>
           <p className="wheel-help">You can also drag the wheel to spin it.</p>
           {winnerTaskId ? (
-            <p className="winner-line">
-              Selected:{" "}
-              {wheelTasks.find((task) => task.id === winnerTaskId)?.label || ""}
-            </p>
+            <>
+              <p className="winner-line">Selected: {winnerTaskLabel}</p>
+              <div className="speech-controls">
+                <button
+                  type="button"
+                  className="speech-btn"
+                  onClick={() => speakWinnerText(winnerTaskLabel)}
+                >
+                  Replay Voice
+                </button>
+                <button
+                  type="button"
+                  className="speech-btn"
+                  onClick={() => setIsMuted((value) => !value)}
+                >
+                  {isMuted ? "Unmute Voice" : "Mute Voice"}
+                </button>
+              </div>
+            </>
           ) : null}
         </div>
 

@@ -95,6 +95,28 @@ body {
   font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
 }
 
+.speech-controls {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.speech-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: #ffffff;
+  color: #273043;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #23395b2b;
+}
+
 .placeholder-wheel {
   width: min(88vh, calc(100vw - 360px));
   aspect-ratio: 1 / 1;
