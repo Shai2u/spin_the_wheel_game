@@ -187,16 +187,17 @@ body.theme-night {
 
 .sky-deco {
   width: 100%;
-  max-width: min(88vh, calc(100vw - 360px));
-  height: 54px;
+  max-width: min(70.4vh, calc(100vw - 488px));
+  height: 120px;
   position: relative;
   pointer-events: none;
+  margin-bottom: -12px;
 }
 
 .sky-object {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 2rem;
+  font-size: 2.2rem;
   filter: drop-shadow(0 2px 4px #00000033);
   transition: left 500ms ease, top 500ms ease;
 }
@@ -418,5 +419,9 @@ body.theme-night {
 
   .placeholder-wheel {
     width: min(65.6vw, 65.6vh);
+  }
+
+  .sky-deco {
+    max-width: min(65.6vw, 65.6vh);
   }
 }

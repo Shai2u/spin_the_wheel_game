@@ -46,16 +46,45 @@ function getAutoThemeByHour(hour) {
 }
 
 function getSkyObject(theme, hour) {
-  if (theme === "dawn") return { icon: "🌤️", left: 24, top: 26 };
-  if (theme === "morning") return { icon: "☀️", left: 50, top: 18 };
-  if (theme === "sunset") return { icon: "🌇", left: 76, top: 28 };
-  if (theme === "night") return { icon: "🌙", left: 78, top: 22 };
+  function arcPosition(progress) {
+    const clamped = Math.min(1, Math.max(0, progress));
+    const angle = Math.PI - Math.PI * clamped;
+    const radius = 44;
+    const cx = 50;
+    const cy = 58;
+    return {
+      left: cx + Math.cos(angle) * radius,
+      top: cy - Math.sin(angle) * radius,
+    };
+  }
 
-  const progress = hour / 24;
-  const left = 8 + 84 * progress;
-  const top = 58 - Math.sin(progress * Math.PI) * 36;
-  const icon = hour >= 6 && hour < 18 ? "☀️" : "🌙";
-  return { icon, left, top };
+  if (theme === "dawn") {
+    const pos = arcPosition(0.15);
+    return { icon: "🌤️", ...pos };
+  }
+  if (theme === "morning") {
+    const pos = arcPosition(0.5);
+    return { icon: "☀️", ...pos };
+  }
+  if (theme === "sunset") {
+    const pos = arcPosition(0.85);
+    return { icon: "🌇", ...pos };
+  }
+  if (theme === "night") {
+    const pos = arcPosition(0.62);
+    return { icon: "🌙", ...pos };
+  }
+
+  // Auto mode: daytime sun and nighttime moon moving over the same upper-half arc.
+  if (hour >= 6 && hour < 18) {
+    const daytimeProgress = (hour - 6) / 12;
+    const pos = arcPosition(daytimeProgress);
+    return { icon: "☀️", ...pos };
+  }
+
+  const nightProgress = hour >= 18 ? (hour - 18) / 12 : (hour + 6) / 12;
+  const pos = arcPosition(nightProgress);
+  return { icon: "🌙", ...pos };
 }
 
 function hasMeaningfulState(state) {
