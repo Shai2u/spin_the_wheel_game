@@ -179,7 +179,7 @@ body.theme-night {
 }
 
 .placeholder-wheel {
-  width: min(calc((100dvh - 420px) * 0.75), calc((100vw - 488px) * 0.75));
+  width: min(calc((100dvh - 460px) * 0.75), calc((100vw - 520px) * 0.72));
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 6px dashed var(--accent);
@@ -494,7 +494,7 @@ body.theme-night {
   }
 
   .placeholder-wheel {
-    width: min(49.2vw, 41.25dvh);
+    width: min(45vw, 38dvh);
   }
 
   .sky-deco {
