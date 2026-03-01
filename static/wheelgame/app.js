@@ -1,4 +1,4 @@
-const { useEffect, useMemo, useState } = React;
+const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "wheelgame_task_bank_v1";
 const SLICE_COLORS = [
@@ -22,13 +22,16 @@ function isHebrewText(value) {
 
 function buildSliceLabelStyle(index, total) {
   const angleStep = 360 / total;
-  const midAngle = index * angleStep + angleStep / 2;
-  const radians = (midAngle * Math.PI) / 180;
+  const midAngleFromTop = index * angleStep + angleStep / 2;
+  const angleFromRight = midAngleFromTop - 90;
+  const radians = (angleFromRight * Math.PI) / 180;
   const radiusPercent = 33;
   const left = 50 + Math.cos(radians) * radiusPercent;
   const top = 50 + Math.sin(radians) * radiusPercent;
   const readableRotation =
-    midAngle > 90 && midAngle < 270 ? midAngle + 180 : midAngle;
+    angleFromRight > 90 && angleFromRight < 270
+      ? angleFromRight + 180
+      : angleFromRight;
 
   return {
     left: `${left}%`,
@@ -85,7 +88,22 @@ function App() {
   const [draggingTask, setDraggingTask] = useState(null);
   const [wheelDropActive, setWheelDropActive] = useState(false);
   const [bankDropActive, setBankDropActive] = useState(false);
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [spinDurationMs, setSpinDurationMs] = useState(0);
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [winnerTaskId, setWinnerTaskId] = useState(null);
   const inputIsHebrew = isHebrewText(newTaskLabel);
+  const wheelRef = useRef(null);
+  const spinTimeoutRef = useRef(null);
+  const dragSpinRef = useRef({
+    active: false,
+    startAngle: 0,
+    startRotation: 0,
+    currentRotation: 0,
+    lastAngle: 0,
+    lastTs: 0,
+    velocity: 0,
+  });
   const wheelGradient = useMemo(() => {
     if (!wheelTasks.length) {
       return "radial-gradient(circle at 40% 30%, #fffde7, #ffe8d6)";
@@ -98,7 +116,7 @@ function App() {
       const color = SLICE_COLORS[index % SLICE_COLORS.length];
       return `${color} ${start}deg ${end}deg`;
     });
-    return `conic-gradient(${slices.join(", ")})`;
+    return `conic-gradient(from -90deg, ${slices.join(", ")})`;
   }, [wheelTasks]);
 
   useEffect(() => {
@@ -110,6 +128,138 @@ function App() {
       })
     );
   }, [bankTasks, wheelTasks]);
+
+  useEffect(() => {
+    return () => {
+      if (spinTimeoutRef.current) {
+        clearTimeout(spinTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  function normalizeDegrees(value) {
+    return ((value % 360) + 360) % 360;
+  }
+
+  function findWinnerIndexByRotation(rotationDeg, totalSlices) {
+    if (!totalSlices) return -1;
+    const normalized = normalizeDegrees(rotationDeg);
+    const localAngleFromTop = (360 - normalized) % 360;
+    const angleStep = 360 / totalSlices;
+    return Math.floor(localAngleFromTop / angleStep) % totalSlices;
+  }
+
+  function finishSpin(finalRotation) {
+    const winnerIndex = findWinnerIndexByRotation(finalRotation, wheelTasks.length);
+    if (winnerIndex >= 0 && wheelTasks[winnerIndex]) {
+      setWinnerTaskId(wheelTasks[winnerIndex].id);
+    }
+    setIsSpinning(false);
+  }
+
+  function spinTo(targetRotation, durationMs) {
+    if (!wheelTasks.length) {
+      setError("Add at least one task to the wheel first.");
+      return;
+    }
+    if (spinTimeoutRef.current) {
+      clearTimeout(spinTimeoutRef.current);
+    }
+
+    setError("");
+    setWinnerTaskId(null);
+    setSpinDurationMs(durationMs);
+    setIsSpinning(true);
+    setWheelRotation(targetRotation);
+
+    spinTimeoutRef.current = setTimeout(() => {
+      finishSpin(targetRotation);
+      spinTimeoutRef.current = null;
+    }, durationMs + 30);
+  }
+
+  function spinByButton() {
+    if (!wheelTasks.length) {
+      setError("Add at least one task to the wheel first.");
+      return;
+    }
+    if (isSpinning) return;
+
+    const turns = 6 + Math.random() * 3;
+    const targetRotation = wheelRotation + turns * 360 + Math.random() * 360;
+    const durationMs = 4200 + Math.random() * 1400;
+    spinTo(targetRotation, durationMs);
+  }
+
+  function getPointerAngleDeg(event) {
+    const wheelElement = wheelRef.current;
+    if (!wheelElement) return 0;
+    const rect = wheelElement.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = event.clientX - cx;
+    const dy = event.clientY - cy;
+    return (Math.atan2(dy, dx) * 180) / Math.PI;
+  }
+
+  function normalizeDeltaAngle(nextAngle, prevAngle) {
+    let delta = nextAngle - prevAngle;
+    while (delta > 180) delta -= 360;
+    while (delta < -180) delta += 360;
+    return delta;
+  }
+
+  function onWheelPointerDown(event) {
+    if (isSpinning) return;
+    if (event.target.closest(".slice-label")) return;
+    if (!wheelTasks.length) {
+      setError("Drag tasks into the wheel first.");
+      return;
+    }
+
+    const startAngle = getPointerAngleDeg(event);
+    dragSpinRef.current = {
+      active: true,
+      startAngle,
+      startRotation: wheelRotation,
+      currentRotation: wheelRotation,
+      lastAngle: startAngle,
+      lastTs: performance.now(),
+      velocity: 0,
+    };
+
+    const onPointerMove = (moveEvent) => {
+      if (!dragSpinRef.current.active) return;
+      const nextAngle = getPointerAngleDeg(moveEvent);
+      const deltaFromStart = normalizeDeltaAngle(nextAngle, dragSpinRef.current.startAngle);
+      const now = performance.now();
+      const frameDeltaAngle = normalizeDeltaAngle(nextAngle, dragSpinRef.current.lastAngle);
+      const dt = Math.max(1, now - dragSpinRef.current.lastTs);
+      dragSpinRef.current.velocity = frameDeltaAngle / dt;
+      dragSpinRef.current.lastAngle = nextAngle;
+      dragSpinRef.current.lastTs = now;
+      dragSpinRef.current.currentRotation =
+        dragSpinRef.current.startRotation + deltaFromStart;
+      setWheelRotation(dragSpinRef.current.currentRotation);
+      setWinnerTaskId(null);
+    };
+
+    const onPointerUp = () => {
+      const { velocity } = dragSpinRef.current;
+      dragSpinRef.current.active = false;
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+
+      const speed = Math.min(Math.abs(velocity), 0.9);
+      const direction = velocity >= 0 ? 1 : -1;
+      const bonusRotation = direction * (360 * (2 + speed * 6));
+      const durationMs = 2200 + speed * 1800;
+      spinTo(dragSpinRef.current.currentRotation + bonusRotation, durationMs);
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  }
 
   function addTask(event) {
     if (event) {
@@ -247,11 +397,29 @@ function App() {
           <h1>Spin The Wheel</h1>
           <p>Drag tasks into slices. Drag labels back to the bank to remove.</p>
           <span className="pill">Drag & Drop enabled</span>
+          <div className="wheel-controls">
+            <button
+              type="button"
+              className="spin-btn"
+              onClick={spinByButton}
+              disabled={isSpinning}
+            >
+              {isSpinning ? "Spinning..." : "Spin"}
+            </button>
+          </div>
+          <p className="wheel-help">You can also drag the wheel to spin it.</p>
+          {winnerTaskId ? (
+            <p className="winner-line">
+              Selected:{" "}
+              {wheelTasks.find((task) => task.id === winnerTaskId)?.label || ""}
+            </p>
+          ) : null}
         </div>
 
         <div
+          ref={wheelRef}
           className={`placeholder-wheel ${wheelDropActive ? "drop-active" : ""}`}
-          style={{ background: wheelGradient }}
+          onPointerDown={onWheelPointerDown}
           onDragOver={(event) => {
             event.preventDefault();
             if (draggingTask?.source === "bank") {
@@ -261,27 +429,39 @@ function App() {
           onDragLeave={() => setWheelDropActive(false)}
           onDrop={onWheelDrop}
         >
-          {wheelTasks.length ? (
-            wheelTasks.map((task, index) => (
-              <button
-                key={task.id}
-                type="button"
-                className={`slice-label ${
-                  isHebrewText(task.label) ? "rtl-text" : "ltr-text"
-                }`}
-                style={buildSliceLabelStyle(index, wheelTasks.length)}
-                draggable
-                onDragStart={() => onTaskDragStart("wheel", task.id)}
-                onDragEnd={onTaskDragEnd}
-                dir={isHebrewText(task.label) ? "rtl" : "ltr"}
-                title="Drag back to task bank"
-              >
-                {task.label}
-              </button>
-            ))
-          ) : (
-            <p className="wheel-empty-state">Wheel is empty. Drop tasks here.</p>
-          )}
+          <div className="wheel-needle" />
+          <div
+            className="wheel-disc"
+            style={{
+              background: wheelGradient,
+              transform: `rotate(${wheelRotation}deg)`,
+              transition: isSpinning
+                ? `transform ${spinDurationMs}ms cubic-bezier(0.08, 0.75, 0.2, 1)`
+                : "none",
+            }}
+          >
+            {wheelTasks.length ? (
+              wheelTasks.map((task, index) => (
+                <button
+                  key={task.id}
+                  type="button"
+                  className={`slice-label ${
+                    isHebrewText(task.label) ? "rtl-text" : "ltr-text"
+                  } ${winnerTaskId === task.id ? "is-winner" : ""}`}
+                  style={buildSliceLabelStyle(index, wheelTasks.length)}
+                  draggable={!isSpinning}
+                  onDragStart={() => onTaskDragStart("wheel", task.id)}
+                  onDragEnd={onTaskDragEnd}
+                  dir={isHebrewText(task.label) ? "rtl" : "ltr"}
+                  title="Drag back to task bank"
+                >
+                  {task.label}
+                </button>
+              ))
+            ) : (
+              <p className="wheel-empty-state">Wheel is empty. Drop tasks here.</p>
+            )}
+          </div>
         </div>
       </section>
 
