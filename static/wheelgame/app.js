@@ -11,6 +11,7 @@ const SLICE_COLORS = [
   "#bdb2ff",
   "#ffc6ff",
 ];
+const THEME_OPTIONS = ["auto", "morning", "dawn", "sunset", "night"];
 
 function normalizeTaskLabel(value) {
   return value.trim().replace(/\s+/g, " ");
@@ -18,6 +19,43 @@ function normalizeTaskLabel(value) {
 
 function isHebrewText(value) {
   return /[\u0590-\u05FF]/.test(value);
+}
+
+function getSavedState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return { bankTasks: parsed };
+    }
+    return parsed || {};
+  } catch {
+    return {};
+  }
+}
+
+function getAutoThemeByHour(hour) {
+  if (hour >= 6 && hour < 10) return "dawn";
+  if (hour >= 10 && hour < 17) return "morning";
+  if (hour >= 17 && hour < 20) return "sunset";
+  return "night";
+}
+
+function getSkyObject(theme, hour) {
+  if (theme === "dawn") return { icon: "🌤️", left: 24, top: 26 };
+  if (theme === "morning") return { icon: "☀️", left: 50, top: 18 };
+  if (theme === "sunset") return { icon: "🌇", left: 76, top: 28 };
+  if (theme === "night") return { icon: "🌙", left: 78, top: 22 };
+
+  const progress = hour / 24;
+  const left = 8 + 84 * progress;
+  const top = 58 - Math.sin(progress * Math.PI) * 36;
+  const icon = hour >= 6 && hour < 18 ? "☀️" : "🌙";
+  return { icon, left, top };
 }
 
 function buildSliceLabelStyle(index, total) {
@@ -50,38 +88,13 @@ function App() {
     ],
     []
   );
-  const [bankTasks, setBankTasks] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      return starterTasks;
-    }
-
-    try {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-      if (Array.isArray(parsed.bankTasks)) {
-        return parsed.bankTasks;
-      }
-      return starterTasks;
-    } catch {
-      return starterTasks;
-    }
-  });
-  const [wheelTasks, setWheelTasks] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed.wheelTasks) ? parsed.wheelTasks : [];
-    } catch {
-      return [];
-    }
-  });
+  const savedState = useMemo(() => getSavedState(), []);
+  const [bankTasks, setBankTasks] = useState(() =>
+    Array.isArray(savedState.bankTasks) ? savedState.bankTasks : starterTasks
+  );
+  const [wheelTasks, setWheelTasks] = useState(() =>
+    Array.isArray(savedState.wheelTasks) ? savedState.wheelTasks : []
+  );
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [error, setError] = useState("");
@@ -93,12 +106,24 @@ function App() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [winnerTaskId, setWinnerTaskId] = useState(null);
   const [needleKick, setNeedleKick] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => Boolean(savedState.isMuted));
+  const [themeMode, setThemeMode] = useState(() =>
+    THEME_OPTIONS.includes(savedState.themeMode) ? savedState.themeMode : "auto"
+  );
+  const [clockHour, setClockHour] = useState(() => new Date().getHours());
   const inputIsHebrew = isHebrewText(newTaskLabel);
   const wheelRef = useRef(null);
   const spinTimeoutRef = useRef(null);
   const frictionIntervalRef = useRef(null);
   const needleKickTimeoutRef = useRef(null);
+  const spinPlanRef = useRef({
+    startTime: 0,
+    durationMs: 0,
+    startRotation: 0,
+    targetRotation: 0,
+    lastBoundary: null,
+    lastKickAt: 0,
+  });
   const dragSpinRef = useRef({
     active: false,
     startAngle: 0,
@@ -126,6 +151,15 @@ function App() {
     () => wheelTasks.find((task) => task.id === winnerTaskId)?.label || "",
     [winnerTaskId, wheelTasks]
   );
+  const effectiveTheme = useMemo(
+    () =>
+      themeMode === "auto" ? getAutoThemeByHour(clockHour) : themeMode,
+    [themeMode, clockHour]
+  );
+  const skyObject = useMemo(
+    () => getSkyObject(effectiveTheme, clockHour),
+    [effectiveTheme, clockHour]
+  );
 
   useEffect(() => {
     localStorage.setItem(
@@ -133,9 +167,28 @@ function App() {
       JSON.stringify({
         bankTasks,
         wheelTasks,
+        isMuted,
+        themeMode,
       })
     );
-  }, [bankTasks, wheelTasks]);
+  }, [bankTasks, wheelTasks, isMuted, themeMode]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setClockHour(new Date().getHours());
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.remove(
+      "theme-morning",
+      "theme-dawn",
+      "theme-sunset",
+      "theme-night"
+    );
+    document.body.classList.add(`theme-${effectiveTheme}`);
+  }, [effectiveTheme]);
 
   useEffect(() => {
     return () => {
@@ -174,8 +227,12 @@ function App() {
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(text);
     const lang = isHebrewText(text) ? "he-IL" : "en-US";
+    const spokenText =
+      lang === "he-IL"
+        ? `המשימה שנבחרה היא: ${text}`
+        : `The selected task is: ${text}`;
+    const utterance = new SpeechSynthesisUtterance(spokenText);
     const voice = getVoiceForLang(lang);
     utterance.lang = lang;
     if (voice) {
@@ -220,11 +277,11 @@ function App() {
 
   function startNeedleFriction(totalDurationMs) {
     stopNeedleFriction();
-    const frictionWindowMs = 1900;
-    const startedAt = performance.now();
+    const frictionWindowMs = 1700;
 
     frictionIntervalRef.current = setInterval(() => {
-      const elapsed = performance.now() - startedAt;
+      const now = performance.now();
+      const elapsed = now - spinPlanRef.current.startTime;
       const remaining = totalDurationMs - elapsed;
       if (remaining <= 0) {
         stopNeedleFriction();
@@ -234,14 +291,31 @@ function App() {
         return;
       }
 
-      // As the wheel slows down near the end, the needle "catches" slices more often.
-      const endProgress = (frictionWindowMs - remaining) / frictionWindowMs;
-      const kickChance = 0.25 + endProgress * 0.7;
-      if (Math.random() < kickChance) {
-        const kickMs = 55 + endProgress * 65;
-        triggerNeedleKick(kickMs);
+      const progress = Math.min(1, Math.max(0, elapsed / totalDurationMs));
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const estimatedRotation =
+        spinPlanRef.current.startRotation +
+        (spinPlanRef.current.targetRotation - spinPlanRef.current.startRotation) *
+          easedProgress;
+      const currentBoundary = findWinnerIndexByRotation(
+        estimatedRotation,
+        wheelTasks.length
+      );
+
+      if (spinPlanRef.current.lastBoundary === null) {
+        spinPlanRef.current.lastBoundary = currentBoundary;
+        return;
       }
-    }, 75);
+      if (currentBoundary !== spinPlanRef.current.lastBoundary) {
+        const endProgress = (frictionWindowMs - remaining) / frictionWindowMs;
+        const minGapMs = 55 + (1 - endProgress) * 45;
+        if (now - spinPlanRef.current.lastKickAt >= minGapMs) {
+          triggerNeedleKick(58 + endProgress * 72);
+          spinPlanRef.current.lastKickAt = now;
+        }
+        spinPlanRef.current.lastBoundary = currentBoundary;
+      }
+    }, 40);
   }
 
   function normalizeDegrees(value) {
@@ -278,6 +352,14 @@ function App() {
     setWinnerTaskId(null);
     setSpinDurationMs(durationMs);
     setIsSpinning(true);
+    spinPlanRef.current = {
+      startTime: performance.now(),
+      durationMs,
+      startRotation: wheelRotation,
+      targetRotation,
+      lastBoundary: null,
+      lastKickAt: 0,
+    };
     setWheelRotation(targetRotation);
     startNeedleFriction(durationMs);
 
@@ -371,6 +453,7 @@ function App() {
   }
 
   function addTask(event) {
+    if (isSpinning) return;
     if (event) {
       event.preventDefault();
     }
@@ -397,6 +480,7 @@ function App() {
   }
 
   function editSelectedTask() {
+    if (isSpinning) return;
     if (!selectedTaskId) {
       setError("Select one task, then press edit.");
       return;
@@ -428,6 +512,7 @@ function App() {
   }
 
   function deleteSelectedTask() {
+    if (isSpinning) return;
     if (!selectedTaskId) {
       setError("Select one task, then press trash.");
       return;
@@ -442,6 +527,7 @@ function App() {
   }
 
   function moveTaskToWheel(taskId) {
+    if (isSpinning) return;
     const task = bankTasks.find((item) => item.id === taskId);
     if (!task) {
       return;
@@ -458,6 +544,7 @@ function App() {
   }
 
   function moveTaskToBank(taskId) {
+    if (isSpinning) return;
     const task = wheelTasks.find((item) => item.id === taskId);
     if (!task) {
       return;
@@ -469,6 +556,7 @@ function App() {
   }
 
   function onTaskDragStart(source, taskId) {
+    if (isSpinning) return;
     setDraggingTask({ source, taskId });
     setError("");
   }
@@ -515,6 +603,21 @@ function App() {
             >
               {isSpinning ? "Spinning..." : "Spin"}
             </button>
+            <label className="theme-label" htmlFor="theme-select">
+              Theme
+            </label>
+            <select
+              id="theme-select"
+              className="theme-select"
+              value={themeMode}
+              onChange={(event) => setThemeMode(event.target.value)}
+            >
+              {THEME_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option[0].toUpperCase() + option.slice(1)}
+                </option>
+              ))}
+            </select>
           </div>
           <p className="wheel-help">You can also drag the wheel to spin it.</p>
           {winnerTaskId ? (
@@ -540,11 +643,21 @@ function App() {
           ) : null}
         </div>
 
+        <div className="sky-deco" aria-hidden="true">
+          <span
+            className="sky-object"
+            style={{ left: `${skyObject.left}%`, top: `${skyObject.top}%` }}
+          >
+            {skyObject.icon}
+          </span>
+        </div>
+
         <div
           ref={wheelRef}
           className={`placeholder-wheel ${wheelDropActive ? "drop-active" : ""}`}
           onPointerDown={onWheelPointerDown}
           onDragOver={(event) => {
+            if (isSpinning) return;
             event.preventDefault();
             if (draggingTask?.source === "bank") {
               setWheelDropActive(true);
@@ -592,6 +705,7 @@ function App() {
       <aside
         className={`task-bank ${bankDropActive ? "drop-active" : ""}`}
         onDragOver={(event) => {
+          if (isSpinning) return;
           event.preventDefault();
           if (draggingTask?.source === "wheel") {
             setBankDropActive(true);
@@ -609,6 +723,7 @@ function App() {
             type="text"
             placeholder="Write a new task..."
             value={newTaskLabel}
+            disabled={isSpinning}
             onChange={(event) => {
               setNewTaskLabel(event.target.value);
               if (error) setError("");
@@ -619,16 +734,17 @@ function App() {
         </form>
 
         <div className="task-actions">
-          <button className="add-btn" type="button" onClick={addTask}>
+          <button className="add-btn" type="button" onClick={addTask} disabled={isSpinning}>
             Add
           </button>
-          <button className="edit-btn" type="button" onClick={editSelectedTask}>
+          <button className="edit-btn" type="button" onClick={editSelectedTask} disabled={isSpinning}>
             Edit
           </button>
           <button
             className="trash-btn"
             type="button"
             onClick={deleteSelectedTask}
+            disabled={isSpinning}
             title="Delete selected task"
             aria-label="Delete selected task"
           >
@@ -647,7 +763,7 @@ function App() {
                   className={`task-item ${
                     selectedTaskId === task.id ? "is-selected" : ""
                   } ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
-                  draggable
+                  draggable={!isSpinning}
                   onDragStart={() => onTaskDragStart("bank", task.id)}
                   onDragEnd={onTaskDragEnd}
                   onClick={() => {

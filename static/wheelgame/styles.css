@@ -17,6 +17,24 @@ body {
   font-family: "Baloo 2", system-ui, sans-serif;
   background: linear-gradient(160deg, var(--bg-start), var(--bg-end));
   color: var(--text);
+  transition: background 500ms ease;
+}
+
+body.theme-morning {
+  background: linear-gradient(160deg, #73c2fb, #b8f2e6);
+}
+
+body.theme-dawn {
+  background: linear-gradient(160deg, #f9c58d, #f9a8d4);
+}
+
+body.theme-sunset {
+  background: linear-gradient(160deg, #fb8500, #8338ec);
+}
+
+body.theme-night {
+  background: linear-gradient(160deg, #0b132b, #3a506b);
+  color: #eff6ff;
 }
 
 .app-shell {
@@ -61,6 +79,11 @@ body {
 
 .wheel-controls {
   margin: 8px 0 6px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .spin-btn {
@@ -79,6 +102,21 @@ body {
 .spin-btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+
+.theme-label {
+  font-size: 0.92rem;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+}
+
+.theme-select {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+  background: #ffffff;
+  color: #273043;
 }
 
 .wheel-help {
@@ -127,6 +165,22 @@ body {
   text-align: center;
   transition: transform 120ms ease, box-shadow 120ms ease;
   touch-action: none;
+}
+
+.sky-deco {
+  width: 100%;
+  max-width: min(88vh, calc(100vw - 360px));
+  height: 54px;
+  position: relative;
+  pointer-events: none;
+}
+
+.sky-object {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px #00000033);
+  transition: left 500ms ease, top 500ms ease;
 }
 
 .wheel-disc {
@@ -196,7 +250,10 @@ body {
 
 .add-btn,
 .edit-btn,
-.trash-btn {
+.trash-btn,
+.add-btn:disabled,
+.edit-btn:disabled,
+.trash-btn:disabled {
   border: 2px solid transparent;
   border-radius: 14px;
   padding: 10px 12px;
@@ -231,6 +288,13 @@ body {
 
 .trash-btn:hover {
   background: #d90429;
+}
+
+.add-btn:disabled,
+.edit-btn:disabled,
+.trash-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .task-error {
