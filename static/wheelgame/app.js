@@ -116,7 +116,7 @@ function App() {
       const color = SLICE_COLORS[index % SLICE_COLORS.length];
       return `${color} ${start}deg ${end}deg`;
     });
-    return `conic-gradient(from -90deg, ${slices.join(", ")})`;
+    return `conic-gradient(${slices.join(", ")})`;
   }, [wheelTasks]);
 
   useEffect(() => {
