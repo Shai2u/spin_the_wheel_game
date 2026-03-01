@@ -17,6 +17,10 @@ function normalizeTaskLabel(value) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+function normalizeLabelKey(value) {
+  return normalizeTaskLabel(value).toLowerCase();
+}
+
 function isHebrewText(value) {
   return /[\u0590-\u05FF]/.test(value);
 }
@@ -100,6 +104,7 @@ function hasMeaningfulState(state) {
   return (
     (Array.isArray(state.bankTasks) && state.bankTasks.length > 0) ||
     (Array.isArray(state.wheelTasks) && state.wheelTasks.length > 0) ||
+    (Array.isArray(state.presets) && state.presets.length > 0) ||
     state.isMuted === true ||
     (typeof state.themeMode === "string" && state.themeMode !== "auto")
   );
@@ -142,7 +147,12 @@ function App() {
   const [wheelTasks, setWheelTasks] = useState(() =>
     Array.isArray(savedState.wheelTasks) ? savedState.wheelTasks : []
   );
+  const [presets, setPresets] = useState(() =>
+    Array.isArray(savedState.presets) ? savedState.presets : []
+  );
   const [newTaskLabel, setNewTaskLabel] = useState("");
+  const [presetName, setPresetName] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState(null);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [error, setError] = useState("");
   const [draggingTask, setDraggingTask] = useState(null);
@@ -204,6 +214,10 @@ function App() {
     () => wheelTasks.find((task) => task.id === winnerTaskId)?.label || "",
     [winnerTaskId, wheelTasks]
   );
+  const selectedPreset = useMemo(
+    () => presets.find((preset) => preset.id === selectedPresetId) || null,
+    [presets, selectedPresetId]
+  );
   const effectiveTheme = useMemo(
     () =>
       themeMode === "auto" ? getAutoThemeByHour(clockHour) : themeMode,
@@ -239,6 +253,9 @@ function App() {
           if (Array.isArray(state.wheelTasks)) {
             setWheelTasks(state.wheelTasks);
           }
+          if (Array.isArray(state.presets)) {
+            setPresets(state.presets);
+          }
           if (typeof state.isMuted === "boolean") {
             setIsMuted(state.isMuted);
           }
@@ -267,11 +284,12 @@ function App() {
       JSON.stringify({
         bankTasks,
         wheelTasks,
+        presets,
         isMuted,
         themeMode,
       })
     );
-  }, [bankTasks, wheelTasks, isMuted, themeMode]);
+  }, [bankTasks, wheelTasks, presets, isMuted, themeMode]);
 
   useEffect(() => {
     if (!backendSyncReady) {
@@ -290,6 +308,7 @@ function App() {
         body: JSON.stringify({
           bankTasks: bankTasks,
           wheelTasks: wheelTasks,
+          presets: presets,
           isMuted: isMuted,
           themeMode: themeMode,
         }),
@@ -305,7 +324,7 @@ function App() {
         backendSaveTimeoutRef.current = null;
       }
     };
-  }, [backendSyncReady, bankTasks, wheelTasks, isMuted, themeMode]);
+  }, [backendSyncReady, bankTasks, wheelTasks, presets, isMuted, themeMode]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -323,6 +342,16 @@ function App() {
     );
     document.body.classList.add(`theme-${effectiveTheme}`);
   }, [effectiveTheme]);
+
+  useEffect(() => {
+    if (
+      selectedPresetId &&
+      !presets.some((preset) => preset.id === selectedPresetId)
+    ) {
+      setSelectedPresetId(null);
+      setPresetName("");
+    }
+  }, [presets, selectedPresetId]);
 
   useEffect(() => {
     return () => {
@@ -623,7 +652,7 @@ function App() {
     }
 
     const exists = bankTasks.some(
-      (task) => task.label.toLowerCase() === normalizedLabel.toLowerCase()
+      (task) => normalizeLabelKey(task.label) === normalizeLabelKey(normalizedLabel)
     );
     if (exists) {
       setError("This task already exists in the bank.");
@@ -653,7 +682,7 @@ function App() {
     const exists = bankTasks.some(
       (task) =>
         task.id !== selectedTaskId &&
-        task.label.toLowerCase() === normalizedLabel.toLowerCase()
+        normalizeLabelKey(task.label) === normalizeLabelKey(normalizedLabel)
     );
     if (exists) {
       setError("Another task already has this name.");
@@ -758,6 +787,118 @@ function App() {
     setError("");
   }
 
+  function savePresetAsNew() {
+    if (isSpinning) return;
+    const normalizedName = normalizeTaskLabel(presetName);
+    if (!normalizedName) {
+      setError("Write a preset name first.");
+      return;
+    }
+    const duplicate = presets.some(
+      (preset) => normalizeLabelKey(preset.name) === normalizeLabelKey(normalizedName)
+    );
+    if (duplicate) {
+      setError("Preset name already exists.");
+      return;
+    }
+
+    const preset = {
+      id: crypto.randomUUID(),
+      name: normalizedName,
+      itemLabels: wheelTasks.map((task) => task.label),
+    };
+    setPresets((current) => [...current, preset]);
+    setSelectedPresetId(preset.id);
+    setPresetName(normalizedName);
+    setError("");
+  }
+
+  function updateSelectedPreset() {
+    if (isSpinning) return;
+    if (!selectedPresetId) {
+      setError("Select a preset first.");
+      return;
+    }
+
+    const normalizedName = normalizeTaskLabel(presetName);
+    if (!normalizedName) {
+      setError("Write a preset name first.");
+      return;
+    }
+    const duplicate = presets.some(
+      (preset) =>
+        preset.id !== selectedPresetId &&
+        normalizeLabelKey(preset.name) === normalizeLabelKey(normalizedName)
+    );
+    if (duplicate) {
+      setError("Another preset already has this name.");
+      return;
+    }
+
+    setPresets((current) =>
+      current.map((preset) =>
+        preset.id === selectedPresetId
+          ? {
+              ...preset,
+              name: normalizedName,
+              itemLabels: wheelTasks.map((task) => task.label),
+            }
+          : preset
+      )
+    );
+    setPresetName(normalizedName);
+    setError("");
+  }
+
+  function deleteSelectedPreset() {
+    if (isSpinning) return;
+    if (!selectedPresetId) {
+      setError("Select a preset first.");
+      return;
+    }
+
+    setPresets((current) => current.filter((preset) => preset.id !== selectedPresetId));
+    setSelectedPresetId(null);
+    setPresetName("");
+    setError("");
+  }
+
+  function applySelectedPreset() {
+    if (isSpinning) return;
+    if (!selectedPreset) {
+      setError("Select a preset first.");
+      return;
+    }
+
+    const pool = [...bankTasks, ...wheelTasks];
+    const usedIds = new Set();
+    const selected = [];
+
+    selectedPreset.itemLabels.forEach((label) => {
+      const match = pool.find(
+        (task) =>
+          !usedIds.has(task.id) &&
+          normalizeLabelKey(task.label) === normalizeLabelKey(label)
+      );
+      if (match) {
+        usedIds.add(match.id);
+        selected.push(match);
+      }
+    });
+
+    const remaining = pool.filter((task) => !usedIds.has(task.id));
+    setWheelTasks(selected);
+    setBankTasks(remaining);
+    setWinnerTaskId(null);
+    setError("");
+  }
+
+  function selectPreset(preset) {
+    setSelectedPresetId(preset.id);
+    setPresetName(preset.name);
+    setError("");
+  }
+
   return (
     <main className="app-shell">
       <section className="wheel-area">
@@ -797,6 +938,73 @@ function App() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="preset-editor">
+            <p className="preset-title">Wheel Presets</p>
+            <div className="preset-row">
+              <input
+                className={`preset-input ${isHebrewText(presetName) ? "rtl-text" : "ltr-text"}`}
+                type="text"
+                placeholder="Preset name..."
+                value={presetName}
+                disabled={isSpinning}
+                onChange={(event) => setPresetName(event.target.value)}
+                dir={isHebrewText(presetName) ? "rtl" : "ltr"}
+              />
+            </div>
+            <div className="preset-actions">
+              <button
+                type="button"
+                className="preset-btn"
+                onClick={savePresetAsNew}
+                disabled={isSpinning}
+              >
+                Save New
+              </button>
+              <button
+                type="button"
+                className="preset-btn"
+                onClick={updateSelectedPreset}
+                disabled={isSpinning || !selectedPresetId}
+              >
+                Save Edit
+              </button>
+              <button
+                type="button"
+                className="preset-btn danger"
+                onClick={deleteSelectedPreset}
+                disabled={isSpinning || !selectedPresetId}
+              >
+                Remove
+              </button>
+              <button
+                type="button"
+                className="preset-btn apply"
+                onClick={applySelectedPreset}
+                disabled={isSpinning || !selectedPresetId}
+              >
+                Apply
+              </button>
+            </div>
+            <ul className="preset-list">
+              {presets.length ? (
+                presets.map((preset) => (
+                  <li key={preset.id}>
+                    <button
+                      type="button"
+                      className={`preset-item ${
+                        selectedPresetId === preset.id ? "is-selected" : ""
+                      } ${isHebrewText(preset.name) ? "rtl-text" : "ltr-text"}`}
+                      onClick={() => selectPreset(preset)}
+                    >
+                      {preset.name}
+                    </button>
+                  </li>
+                ))
+              ) : (
+                <li className="empty-state">No presets yet. Save current wheel as one.</li>
+              )}
+            </ul>
           </div>
           <p className="wheel-help">You can also drag the wheel to spin it.</p>
           {winnerTaskId ? (

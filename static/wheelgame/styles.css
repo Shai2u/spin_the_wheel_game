@@ -1,10 +1,10 @@
 :root {
-  --bg-start: #74ebd5;
-  --bg-end: #acb6e5;
-  --card: #ffffffdd;
-  --text: #273043;
-  --accent: #ff8fab;
-  --accent-2: #ffd166;
+  --bg-start: #46e2ff;
+  --bg-end: #ff8ef6;
+  --card: #fffffff2;
+  --text: #1b1235;
+  --accent: #ff2d95;
+  --accent-2: #ffd60a;
 }
 
 * {
@@ -21,19 +21,19 @@ body {
 }
 
 body.theme-morning {
-  background: linear-gradient(160deg, #73c2fb, #b8f2e6);
+  background: linear-gradient(160deg, #47c8ff, #7dffb3);
 }
 
 body.theme-dawn {
-  background: linear-gradient(160deg, #f9c58d, #f9a8d4);
+  background: linear-gradient(160deg, #ffb347, #ff6fb7);
 }
 
 body.theme-sunset {
-  background: linear-gradient(160deg, #fb8500, #8338ec);
+  background: linear-gradient(160deg, #ff6a00, #7b2cff);
 }
 
 body.theme-night {
-  background: linear-gradient(160deg, #0b132b, #3a506b);
+  background: linear-gradient(160deg, #04132f, #193a7a);
   color: #eff6ff;
 }
 
@@ -49,7 +49,7 @@ body.theme-night {
 .task-bank {
   background: var(--card);
   border-radius: 20px;
-  box-shadow: 0 10px 20px #23395b22;
+  box-shadow: 0 14px 24px #1d2f6f3a;
   padding: 14px;
 }
 
@@ -93,7 +93,7 @@ body.theme-night {
   font: inherit;
   font-size: 1.05rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #ff9f1c, #ff6b6b);
+  background: linear-gradient(135deg, #ff9500, #ff006e);
   color: #fff;
   cursor: pointer;
   box-shadow: 0 8px 16px #ff6b6b55;
@@ -106,7 +106,7 @@ body.theme-night {
   font: inherit;
   font-size: 0.98rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #38bdf8, #6366f1);
+  background: linear-gradient(135deg, #00bbf9, #4361ee);
   color: #fff;
   cursor: pointer;
   box-shadow: 0 8px 16px #6366f155;
@@ -177,7 +177,7 @@ body.theme-night {
   width: min(70.4vh, calc(100vw - 488px));
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 10px dashed var(--accent);
+  border: 6px dashed var(--accent);
   position: relative;
   overflow: hidden;
   text-align: center;
@@ -350,8 +350,8 @@ body.theme-night {
 }
 
 .task-item.is-selected {
-  border-color: #70a1ff;
-  background: #e8f0ff;
+  border-color: #2f7df6;
+  background: #dbeafe;
 }
 
 .rtl-text {
@@ -392,7 +392,8 @@ body.theme-night {
   font: inherit;
   font-size: 1rem;
   font-weight: 700;
-  background: #ffffffd9;
+  background: #ffffffee;
+  color: #1b1235;
   cursor: grab;
   white-space: nowrap;
   overflow: hidden;
@@ -400,8 +401,8 @@ body.theme-night {
 }
 
 .slice-label.is-winner {
-  background: #fff3b0;
-  box-shadow: 0 0 0 2px #ff9f1c;
+  background: #ffe66d;
+  box-shadow: 0 0 0 2px #ff8500;
 }
 
 .pill {
@@ -410,6 +411,90 @@ body.theme-night {
   background: var(--accent-2);
   padding: 4px 12px;
   font-weight: 700;
+}
+
+.preset-editor {
+  margin-top: 8px;
+  background: #ffffffcc;
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: inset 0 0 0 1px #ffffff;
+}
+
+.preset-title {
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+
+.preset-row {
+  margin-bottom: 6px;
+}
+
+.preset-input {
+  width: 100%;
+  border: 2px solid #d8e2ff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
+}
+
+.preset-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.preset-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #3a86ff, #8338ec);
+  cursor: pointer;
+}
+
+.preset-btn.apply {
+  background: linear-gradient(135deg, #00c853, #00a676);
+}
+
+.preset-btn.danger {
+  background: linear-gradient(135deg, #ff4d6d, #d90429);
+}
+
+.preset-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.preset-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 128px;
+  overflow: auto;
+}
+
+.preset-list li + li {
+  margin-top: 4px;
+}
+
+.preset-item {
+  width: 100%;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: #fff;
+  padding: 7px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.preset-item.is-selected {
+  border-color: #3a86ff;
+  background: #e8f0ff;
 }
 
 @media (max-width: 1100px) {
