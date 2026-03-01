@@ -59,6 +59,8 @@ function getRandomUnit() {
 }
 
 function getSkyObject(theme, hour) {
+  const upperRightSun = { left: 84, top: 16 };
+
   function arcPosition(progress) {
     const clamped = Math.min(1, Math.max(0, progress));
     const angle = Math.PI - Math.PI * clamped;
@@ -72,16 +74,13 @@ function getSkyObject(theme, hour) {
   }
 
   if (theme === "dawn") {
-    const pos = arcPosition(0.15);
-    return { icon: "🌤️", ...pos };
+    return { icon: "🌤️", ...upperRightSun };
   }
   if (theme === "morning") {
-    const pos = arcPosition(0.5);
-    return { icon: "☀️", ...pos };
+    return { icon: "☀️", ...upperRightSun };
   }
   if (theme === "sunset") {
-    const pos = arcPosition(0.85);
-    return { icon: "🌇", ...pos };
+    return { icon: "🌇", ...upperRightSun };
   }
   if (theme === "night") {
     const pos = arcPosition(0.62);
@@ -90,9 +89,7 @@ function getSkyObject(theme, hour) {
 
   // Auto mode: daytime sun and nighttime moon moving over the same upper-half arc.
   if (hour >= 6 && hour < 18) {
-    const daytimeProgress = (hour - 6) / 12;
-    const pos = arcPosition(daytimeProgress);
-    return { icon: "☀️", ...pos };
+    return { icon: "☀️", ...upperRightSun };
   }
 
   const nightProgress = hour >= 18 ? (hour - 18) / 12 : (hour + 6) / 12;
@@ -893,12 +890,6 @@ function App() {
     setError("");
   }
 
-  function selectPreset(preset) {
-    setSelectedPresetId(preset.id);
-    setPresetName(preset.name);
-    setError("");
-  }
-
   return (
     <main className="app-shell">
       <section className="wheel-area">
@@ -952,6 +943,29 @@ function App() {
                 dir={isHebrewText(presetName) ? "rtl" : "ltr"}
               />
             </div>
+            <div className="preset-row">
+              <select
+                className="preset-select"
+                value={selectedPresetId || ""}
+                onChange={(event) => {
+                  const nextId = event.target.value || null;
+                  setSelectedPresetId(nextId);
+                  const preset = presets.find((item) => item.id === nextId);
+                  setPresetName(preset ? preset.name : "");
+                  setError("");
+                }}
+                disabled={isSpinning || !presets.length}
+              >
+                <option value="">
+                  {presets.length ? "Select preset..." : "No presets yet"}
+                </option>
+                {presets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="preset-actions">
               <button
                 type="button"
@@ -986,25 +1000,6 @@ function App() {
                 Apply
               </button>
             </div>
-            <ul className="preset-list">
-              {presets.length ? (
-                presets.map((preset) => (
-                  <li key={preset.id}>
-                    <button
-                      type="button"
-                      className={`preset-item ${
-                        selectedPresetId === preset.id ? "is-selected" : ""
-                      } ${isHebrewText(preset.name) ? "rtl-text" : "ltr-text"}`}
-                      onClick={() => selectPreset(preset)}
-                    >
-                      {preset.name}
-                    </button>
-                  </li>
-                ))
-              ) : (
-                <li className="empty-state">No presets yet. Save current wheel as one.</li>
-              )}
-            </ul>
           </div>
           <p className="wheel-help">You can also drag the wheel to spin it.</p>
           {winnerTaskId ? (

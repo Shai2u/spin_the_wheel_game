@@ -439,6 +439,16 @@ body.theme-night {
   background: #fff;
 }
 
+.preset-select {
+  width: 100%;
+  border: 2px solid #d8e2ff;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font: inherit;
+  background: #fff;
+  color: #1b1235;
+}
+
 .preset-actions {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -468,33 +478,6 @@ body.theme-night {
 .preset-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.preset-list {
-  margin: 8px 0 0;
-  padding: 0;
-  list-style: none;
-  max-height: 128px;
-  overflow: auto;
-}
-
-.preset-list li + li {
-  margin-top: 4px;
-}
-
-.preset-item {
-  width: 100%;
-  border: 2px solid transparent;
-  border-radius: 10px;
-  background: #fff;
-  padding: 7px 10px;
-  font: inherit;
-  cursor: pointer;
-}
-
-.preset-item.is-selected {
-  border-color: #3a86ff;
-  background: #e8f0ff;
 }
 
 @media (max-width: 1100px) {
