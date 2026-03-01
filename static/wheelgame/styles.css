@@ -174,7 +174,7 @@ body.theme-night {
 }
 
 .placeholder-wheel {
-  width: min(88vh, calc(100vw - 360px));
+  width: min(70.4vh, calc(100vw - 488px));
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   border: 10px dashed var(--accent);
@@ -417,6 +417,6 @@ body.theme-night {
   }
 
   .placeholder-wheel {
-    width: min(82vw, 82vh);
+    width: min(65.6vw, 65.6vh);
   }
 }
