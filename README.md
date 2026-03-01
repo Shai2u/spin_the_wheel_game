@@ -1,4 +1,4 @@
-# Spin the Yarin!
+# Spin the Wheel!
 
 A kid-friendly "spin the wheel" game built with **Django** + **React (browser-loaded)**.
 
