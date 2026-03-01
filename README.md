@@ -85,6 +85,34 @@ If it does not open, allow Python/Django through Windows Firewall and make sure 
 5. Use `Replay Voice` / `Mute Voice` as needed
 6. Use `Reset Wheel` to return all wheel tasks back to bank
 
+## Snapshots (Placeholders)
+
+Replace each placeholder path with your real image path after you add screenshots.
+
+### 1) Main Game Screen
+
+![Main game screen placeholder](./docs/snapshots/main-game-screen.png)
+
+### 2) Task Bank + Drag And Drop
+
+![Task bank drag drop placeholder](./docs/snapshots/task-bank-drag-drop.png)
+
+### 3) Wheel Spinning
+
+![Wheel spinning placeholder](./docs/snapshots/wheel-spinning.png)
+
+### 4) Winner + Voice Controls
+
+![Winner and voice controls placeholder](./docs/snapshots/winner-voice-controls.png)
+
+### 5) Theme Variants (Morning/Dawn/Sunset/Night)
+
+![Theme variants placeholder](./docs/snapshots/theme-variants.png)
+
+### 6) Tablet View
+
+![Tablet view placeholder](./docs/snapshots/tablet-view.png)
+
 ## Notes
 
 - Hebrew text auto-switches to RTL and Arial-like font.
