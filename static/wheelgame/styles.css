@@ -1,0 +1,75 @@
+:root {
+  --bg-start: #74ebd5;
+  --bg-end: #acb6e5;
+  --card: #ffffffdd;
+  --text: #273043;
+  --accent: #ff8fab;
+  --accent-2: #ffd166;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  background: linear-gradient(160deg, var(--bg-start), var(--bg-end));
+  color: var(--text);
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  padding: 24px;
+}
+
+.wheel-area,
+.task-bank {
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 10px 20px #23395b22;
+  padding: 20px;
+}
+
+.wheel-area {
+  display: grid;
+  place-items: center;
+}
+
+.placeholder-wheel {
+  width: min(62vh, 500px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 10px dashed var(--accent);
+  background: radial-gradient(circle at 40% 30%, #fffde7, #ffe8d6);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 16px;
+}
+
+.task-bank h2 {
+  margin: 0 0 10px;
+}
+
+.task-list {
+  margin-top: 12px;
+  padding-left: 18px;
+}
+
+.task-list li {
+  font-size: 1.1rem;
+  margin: 8px 0;
+}
+
+.pill {
+  display: inline-block;
+  border-radius: 999px;
+  background: var(--accent-2);
+  padding: 4px 12px;
+  font-weight: 700;
+}
