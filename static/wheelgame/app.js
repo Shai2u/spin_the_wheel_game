@@ -43,7 +43,10 @@ function App() {
   }, [bankTasks]);
 
   function addTask(event) {
-    event.preventDefault();
+    if (event) {
+      event.preventDefault();
+    }
+
     const normalizedLabel = normalizeTaskLabel(newTaskLabel);
     if (!normalizedLabel) {
       setError("Please write a task first.");
@@ -65,6 +68,37 @@ function App() {
     setError("");
   }
 
+  function editSelectedTask() {
+    if (!selectedTaskId) {
+      setError("Select one task, then press edit.");
+      return;
+    }
+
+    const normalizedLabel = normalizeTaskLabel(newTaskLabel);
+    if (!normalizedLabel) {
+      setError("Write the updated text first.");
+      return;
+    }
+
+    const exists = bankTasks.some(
+      (task) =>
+        task.id !== selectedTaskId &&
+        task.label.toLowerCase() === normalizedLabel.toLowerCase()
+    );
+    if (exists) {
+      setError("Another task already has this name.");
+      return;
+    }
+
+    setBankTasks((current) =>
+      current.map((task) =>
+        task.id === selectedTaskId ? { ...task, label: normalizedLabel } : task
+      )
+    );
+    setNewTaskLabel(normalizedLabel);
+    setError("");
+  }
+
   function deleteSelectedTask() {
     if (!selectedTaskId) {
       setError("Select one task, then press trash.");
@@ -75,6 +109,7 @@ function App() {
       current.filter((task) => task.id !== selectedTaskId)
     );
     setSelectedTaskId(null);
+    setNewTaskLabel("");
     setError("");
   }
 
@@ -95,7 +130,7 @@ function App() {
 
       <aside className="task-bank">
         <h2>Task Bank</h2>
-        <p>Add tasks and remove selected ones with the trash button.</p>
+        <p>Add, edit, or remove selected tasks.</p>
 
         <form className="task-input-row" onSubmit={addTask}>
           <input
@@ -110,8 +145,14 @@ function App() {
             aria-label="New task"
             dir={inputIsHebrew ? "rtl" : "ltr"}
           />
-          <button className="add-btn" type="submit">
+        </form>
+
+        <div className="task-actions">
+          <button className="add-btn" type="button" onClick={addTask}>
             Add
+          </button>
+          <button className="edit-btn" type="button" onClick={editSelectedTask}>
+            Edit
           </button>
           <button
             className="trash-btn"
@@ -122,7 +163,7 @@ function App() {
           >
             🗑️
           </button>
-        </form>
+        </div>
 
         {error ? <p className="task-error">{error}</p> : null}
 
@@ -137,6 +178,7 @@ function App() {
                   } ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
                   onClick={() => {
                     setSelectedTaskId(task.id);
+                    setNewTaskLabel(task.label);
                     setError("");
                   }}
                   dir={isHebrewText(task.label) ? "rtl" : "ltr"}
