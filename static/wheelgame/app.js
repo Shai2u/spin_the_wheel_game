@@ -111,11 +111,13 @@ function App() {
     THEME_OPTIONS.includes(savedState.themeMode) ? savedState.themeMode : "auto"
   );
   const [clockHour, setClockHour] = useState(() => new Date().getHours());
+  const [backendSyncReady, setBackendSyncReady] = useState(false);
   const inputIsHebrew = isHebrewText(newTaskLabel);
   const wheelRef = useRef(null);
   const spinTimeoutRef = useRef(null);
   const frictionIntervalRef = useRef(null);
   const needleKickTimeoutRef = useRef(null);
+  const backendSaveTimeoutRef = useRef(null);
   const spinPlanRef = useRef({
     startTime: 0,
     durationMs: 0,
@@ -162,6 +164,48 @@ function App() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadStateFromBackend() {
+      try {
+        const response = await fetch("/api/state/");
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        if (cancelled || !data?.state) {
+          return;
+        }
+
+        const state = data.state;
+        if (Array.isArray(state.bankTasks)) {
+          setBankTasks(state.bankTasks);
+        }
+        if (Array.isArray(state.wheelTasks)) {
+          setWheelTasks(state.wheelTasks);
+        }
+        if (typeof state.isMuted === "boolean") {
+          setIsMuted(state.isMuted);
+        }
+        if (THEME_OPTIONS.includes(state.themeMode)) {
+          setThemeMode(state.themeMode);
+        }
+      } catch {
+        // Keep local state if backend is unavailable.
+      } finally {
+        if (!cancelled) {
+          setBackendSyncReady(true);
+        }
+      }
+    }
+
+    loadStateFromBackend();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -172,6 +216,40 @@ function App() {
       })
     );
   }, [bankTasks, wheelTasks, isMuted, themeMode]);
+
+  useEffect(() => {
+    if (!backendSyncReady) {
+      return;
+    }
+
+    if (backendSaveTimeoutRef.current) {
+      clearTimeout(backendSaveTimeoutRef.current);
+    }
+    backendSaveTimeoutRef.current = setTimeout(() => {
+      fetch("/api/state/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bankTasks: bankTasks,
+          wheelTasks: wheelTasks,
+          isMuted: isMuted,
+          themeMode: themeMode,
+        }),
+      }).catch(() => {
+        // Keep app responsive when backend sync fails.
+      });
+      backendSaveTimeoutRef.current = null;
+    }, 350);
+
+    return () => {
+      if (backendSaveTimeoutRef.current) {
+        clearTimeout(backendSaveTimeoutRef.current);
+        backendSaveTimeoutRef.current = null;
+      }
+    };
+  }, [backendSyncReady, bankTasks, wheelTasks, isMuted, themeMode]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -203,6 +281,9 @@ function App() {
       }
       if (needleKickTimeoutRef.current) {
         clearTimeout(needleKickTimeoutRef.current);
+      }
+      if (backendSaveTimeoutRef.current) {
+        clearTimeout(backendSaveTimeoutRef.current);
       }
     };
   }, []);
