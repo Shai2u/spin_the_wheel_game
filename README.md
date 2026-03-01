@@ -12,6 +12,7 @@ This app supports:
 - Theme modes: auto, morning, dawn, sunset, night
 - Reset wheel (move all wheel tasks back to bank)
 - Backend persistence API (`/api/state/`) for save/load
+- Preset editor in wheel area (save/apply/edit/remove presets)
 
 ## Tech Stack
 
@@ -84,6 +85,7 @@ If it does not open, allow Python/Django through Windows Firewall and make sure 
 4. Listen to winner announcement
 5. Use `Replay Voice` / `Mute Voice` as needed
 6. Use `Reset Wheel` to return all wheel tasks back to bank
+7. Use `Wheel Presets` to save/apply/edit/remove preset wheels
 
 ## Snapshots (Placeholders)
 
