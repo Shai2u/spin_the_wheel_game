@@ -11,12 +11,13 @@ This app supports:
 - Winner highlight and text-to-speech (Hebrew + English)
 - Theme modes: auto, morning, dawn, sunset, night
 - Reset wheel (move all wheel tasks back to bank)
+- Backend persistence API (`/api/state/`) for save/load
 
 ## Tech Stack
 
 - Backend: Django 4.2
 - Frontend: React 18 via CDN + Babel (no Node build step required)
-- Storage: browser `localStorage` (for current UI state)
+- Storage: Django SQLite + browser `localStorage` fallback
 - Environment: Conda env `django_learn`
 
 ## Project Structure
@@ -45,6 +46,33 @@ conda run -n django_learn python manage.py runserver 127.0.0.1:8088
 Open:
 - App: `http://127.0.0.1:8088/`
 - Health endpoint: `http://127.0.0.1:8088/api/health/`
+- State endpoint: `http://127.0.0.1:8088/api/state/`
+
+## Open on iPad / Phone (same Wi-Fi)
+
+1. Start server on all interfaces:
+
+```powershell
+conda run -n django_learn python manage.py runserver 0.0.0.0:8088
+```
+
+2. Find your computer LAN IP (Windows):
+
+```powershell
+ipconfig
+```
+
+Look for IPv4 address of your active adapter, for example `192.168.1.35`.
+
+3. On iPad/phone (same Wi-Fi), open:
+
+`http://<YOUR_LAN_IP>:8088/`
+
+Example:
+
+`http://192.168.1.35:8088/`
+
+If it does not open, allow Python/Django through Windows Firewall and make sure both devices are on the same network.
 
 ## How To Use
 
@@ -61,7 +89,7 @@ Open:
 
 - Hebrew text auto-switches to RTL and Arial-like font.
 - Spin interactions temporarily lock editing/dragging for consistency.
-- Wheel/task/theme/mute settings persist in `localStorage`.
+- Wheel/task/theme/mute settings persist in backend (`/api/state/`) and localStorage fallback.
 
 ## Troubleshooting
 
@@ -74,7 +102,6 @@ Open:
 
 ## Recommended Next Additions
 
-- Django persistence API for tasks, theme, and spin history
 - Basic test suite (Django endpoint tests + key frontend logic tests)
 - Export/import tasks as JSON
 - PWA mode (installable app experience)
