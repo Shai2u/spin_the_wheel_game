@@ -895,6 +895,14 @@ function App() {
   return (
     <main className="app-shell">
       <section className="wheel-area">
+        <div className="sky-deco" aria-hidden="true">
+          <span
+            className="sky-object"
+            style={{ left: `${skyObject.left}%`, top: `${skyObject.top}%` }}
+          >
+            {skyObject.icon}
+          </span>
+        </div>
         <div className="wheel-headline">
           <div className="wheel-top-bar">
             <h1 className="wheel-title">Spin the Yarin!</h1>
@@ -1022,15 +1030,6 @@ function App() {
               </div>
             </>
           ) : null}
-        </div>
-
-        <div className="sky-deco" aria-hidden="true">
-          <span
-            className="sky-object"
-            style={{ left: `${skyObject.left}%`, top: `${skyObject.top}%` }}
-          >
-            {skyObject.icon}
-          </span>
         </div>
 
         <div

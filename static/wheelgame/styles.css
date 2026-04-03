@@ -67,12 +67,15 @@ body.theme-night {
   min-height: 0;
   height: 100%;
   overflow: auto;
+  position: relative;
 }
 
 .wheel-headline {
   text-align: center;
   max-width: 720px;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .wheel-top-bar {
@@ -189,23 +192,23 @@ body.theme-night {
   transition: transform 120ms ease, box-shadow 120ms ease;
   touch-action: none;
   align-self: start;
+  z-index: 1;
 }
 
 .sky-deco {
-  width: 100%;
-  max-width: 32.5vw;
-  height: 74px;
-  position: relative;
+  position: absolute;
+  inset: 0;
   pointer-events: none;
-  margin-bottom: -4px;
+  z-index: 0;
 }
 
 .sky-object {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 2.2rem;
-  filter: drop-shadow(0 2px 4px #00000033);
+  font-size: 8rem;
+  filter: drop-shadow(0 4px 12px #00000022);
   transition: left 500ms ease, top 500ms ease;
+  opacity: 0.55;
 }
 
 .wheel-disc {
