@@ -15,6 +15,16 @@ const SLICE_COLORS = [
 ];
 const THEME_OPTIONS = ["auto", "morning", "dawn", "sunset", "night"];
 
+const HELP_STEPS = [
+  { sel: '[data-help="wheel"]',        text: "זה הגלגל! לחץ עליו כדי לסובב אותו" },
+  { sel: '[data-help="bank"]',         text: "זה בנק המשימות. כאן שומרים את כל המשימות" },
+  { sel: '[data-help="task-input"]',   text: "כאן כותבים שם של משימה חדשה" },
+  { sel: '[data-help="task-actions"]', text: "הוסף, ערוך, מחק, ואפס משימות עם הכפתורים האלה" },
+  { sel: '[data-help="task-list"]',    text: "לחץ על החץ הירוק כדי לשים משימה על הגלגל" },
+  { sel: '[data-help="preset-editor"]',text: "כאן שומרים תבניות של משימות לגלגל" },
+  { sel: '[data-help="mute-btn"]',     text: "לחץ על הרמקול כדי להשתיק או להפעיל את הקול" },
+];
+
 function normalizeTaskLabel(value) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -168,6 +178,10 @@ function App() {
   );
   const [clockHour, setClockHour] = useState(() => new Date().getHours());
   const [backendSyncReady, setBackendSyncReady] = useState(false);
+  const [floatingWord, setFloatingWord] = useState(null);
+  const [helpMode, setHelpMode] = useState(false);
+  const [helpStep, setHelpStep] = useState(0);
+  const [helpRect, setHelpRect] = useState(null);
   const hasLocalMeaningfulState = useMemo(
     () => hasMeaningfulState(savedState),
     [savedState]
@@ -196,6 +210,7 @@ function App() {
     velocity: 0,
   });
   const spinQueueRef = useRef([]);
+  const floatingWordTimeoutRef = useRef(null);
   const wheelGradient = useMemo(() => {
     if (!wheelTasks.length) {
       return "radial-gradient(circle at 40% 30%, #fffde7, #ffe8d6)";
@@ -359,67 +374,66 @@ function App() {
 
   useEffect(() => {
     return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      if (spinTimeoutRef.current) {
-        clearTimeout(spinTimeoutRef.current);
-      }
-      if (frictionIntervalRef.current) {
-        clearInterval(frictionIntervalRef.current);
-      }
-      if (needleKickTimeoutRef.current) {
-        clearTimeout(needleKickTimeoutRef.current);
-      }
-      if (backendSaveTimeoutRef.current) {
-        clearTimeout(backendSaveTimeoutRef.current);
-      }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      if (spinTimeoutRef.current) clearTimeout(spinTimeoutRef.current);
+      if (frictionIntervalRef.current) clearInterval(frictionIntervalRef.current);
+      if (needleKickTimeoutRef.current) clearTimeout(needleKickTimeoutRef.current);
+      if (backendSaveTimeoutRef.current) clearTimeout(backendSaveTimeoutRef.current);
+      if (floatingWordTimeoutRef.current) clearTimeout(floatingWordTimeoutRef.current);
     };
   }, []);
 
   function getVoiceForLang(lang) {
-    if (!window.speechSynthesis) {
-      return null;
-    }
+    if (!window.speechSynthesis) return null;
     const voices = window.speechSynthesis.getVoices();
-    if (!voices.length) {
-      return null;
-    }
-    return (
-      voices.find((voice) =>
-        voice.lang.toLowerCase().startsWith(lang.toLowerCase())
-      ) || null
-    );
+    if (!voices.length) return null;
+    return voices.find((v) => v.lang.toLowerCase().startsWith(lang.toLowerCase())) || null;
   }
 
-  function speakWinnerText(text) {
-    if (!text || !window.speechSynthesis) {
-      return;
-    }
-
-    const lang = isHebrewText(text) ? "he-IL" : "en-US";
-    const spokenText =
-      lang === "he-IL"
-        ? `המשימה שנבחרה היא: ${text}`
-        : `The selected task is: ${text}`;
-    const utterance = new SpeechSynthesisUtterance(spokenText);
+  function speakRaw(text, lang) {
+    if (!text || !window.speechSynthesis) return;
+    const utterance = new SpeechSynthesisUtterance(text);
     const voice = getVoiceForLang(lang);
     utterance.lang = lang;
-    if (voice) {
-      utterance.voice = voice;
-    }
+    if (voice) utterance.voice = voice;
     utterance.rate = 0.93;
     utterance.pitch = 1.08;
-
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   }
 
-  useEffect(() => {
-    if (!winnerTaskLabel || isMuted) {
-      return;
+  function speakWinnerText(text) {
+    if (!text) return;
+    const lang = isHebrewText(text) ? "he-IL" : "en-US";
+    const spokenText = lang === "he-IL"
+      ? `המשימה שנבחרה היא: ${text}`
+      : `The selected task is: ${text}`;
+    speakRaw(spokenText, lang);
+  }
+
+  function speakWord(text) {
+    if (!text) return;
+    if (floatingWordTimeoutRef.current) clearTimeout(floatingWordTimeoutRef.current);
+    setFloatingWord({ text, key: Date.now() });
+    floatingWordTimeoutRef.current = setTimeout(() => {
+      setFloatingWord(null);
+      floatingWordTimeoutRef.current = null;
+    }, 2800);
+    if (!isMuted) {
+      const lang = isHebrewText(text) ? "he-IL" : "en-US";
+      speakRaw(text, lang);
     }
-    speakWinnerText(winnerTaskLabel);
+  }
+
+  useEffect(() => {
+    if (!winnerTaskLabel) return;
+    if (floatingWordTimeoutRef.current) clearTimeout(floatingWordTimeoutRef.current);
+    setFloatingWord({ text: winnerTaskLabel, key: Date.now() });
+    floatingWordTimeoutRef.current = setTimeout(() => {
+      setFloatingWord(null);
+      floatingWordTimeoutRef.current = null;
+    }, 2800);
+    if (!isMuted) speakWinnerText(winnerTaskLabel);
   }, [winnerTaskLabel, isMuted]);
 
   function stopNeedleFriction() {
@@ -887,6 +901,37 @@ function App() {
     setError("");
   }
 
+  function exitHelp() {
+    setHelpMode(false);
+    setHelpStep(0);
+    setHelpRect(null);
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  function enterHelpStep(step) {
+    if (step >= HELP_STEPS.length) {
+      exitHelp();
+      return;
+    }
+    setHelpStep(step);
+    requestAnimationFrame(() => {
+      const el = document.querySelector(HELP_STEPS[step].sel);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const pad = 10;
+        setHelpRect({ top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 });
+      } else {
+        setHelpRect(null);
+      }
+    });
+    speakRaw(HELP_STEPS[step].text, "he-IL");
+  }
+
+  function startHelp() {
+    setHelpMode(true);
+    enterHelpStep(0);
+  }
+
   function applySelectedPreset() {
     if (isSpinning) return;
     if (!selectedPreset) {
@@ -919,6 +964,31 @@ function App() {
 
   return (
     <main className="app-shell">
+      {floatingWord && (
+        <div key={floatingWord.key} className="floating-callout" aria-live="assertive">
+          <span className={`floating-callout-word ${isHebrewText(floatingWord.text) ? "rtl-text" : "ltr-text"}`}>
+            {floatingWord.text}
+          </span>
+        </div>
+      )}
+      {helpMode && helpRect && (
+        <div
+          className="help-spotlight"
+          style={{ top: helpRect.top, left: helpRect.left, width: helpRect.width, height: helpRect.height }}
+        />
+      )}
+      {helpMode && (
+        <div className="help-bubble" dir="rtl">
+          <p className="help-step-counter">{helpStep + 1} / {HELP_STEPS.length}</p>
+          <p className="help-bubble-text">{HELP_STEPS[helpStep].text}</p>
+          <div className="help-bubble-actions">
+            <button className="help-exit-btn" type="button" onClick={exitHelp}>סיום</button>
+            <button className="help-next-btn" type="button" onClick={() => enterHelpStep(helpStep + 1)}>
+              {helpStep + 1 < HELP_STEPS.length ? "הבא ›" : "סיום ✓"}
+            </button>
+          </div>
+        </div>
+      )}
       <section className="wheel-area">
         <div className="sky-deco" aria-hidden="true">
           <span
@@ -934,7 +1004,17 @@ function App() {
             <div className="top-bar-controls">
               <button
                 type="button"
+                className="help-btn"
+                onClick={startHelp}
+                title="עזרה"
+                aria-label="Help"
+              >
+                ?
+              </button>
+              <button
+                type="button"
                 className={`mute-btn ${isMuted ? "is-muted" : ""}`}
+                data-help="mute-btn"
                 onClick={() => setIsMuted((value) => !value)}
                 title={isMuted ? "Unmute voice" : "Mute voice"}
                 aria-label={isMuted ? "Unmute voice" : "Mute voice"}
@@ -957,7 +1037,7 @@ function App() {
             </div>
           </div>
 
-          <div className="preset-editor">
+          <div className="preset-editor" data-help="preset-editor">
             <div className="preset-top-row">
               <input
                 className={`preset-input ${isHebrewText(presetName) ? "rtl-text" : "ltr-text"}`}
@@ -1031,6 +1111,7 @@ function App() {
         <div
           ref={wheelRef}
           className={`placeholder-wheel ${wheelDropActive ? "drop-active" : ""}`}
+          data-help="wheel"
           onPointerDown={onWheelPointerDown}
           onDragOver={(event) => {
             if (isSpinning) return;
@@ -1065,8 +1146,9 @@ function App() {
                   draggable={!isSpinning && !IS_TOUCH_DEVICE}
                   onDragStart={() => onTaskDragStart("wheel", task.id)}
                   onDragEnd={onTaskDragEnd}
+                  onClick={() => speakWord(task.label)}
                   dir={isHebrewText(task.label) ? "rtl" : "ltr"}
-                  title={IS_TOUCH_DEVICE ? task.label : "Drag back to task bank"}
+                  title={task.label}
                 >
                   {task.label}
                 </button>
@@ -1082,6 +1164,7 @@ function App() {
 
       <aside
         className={`task-bank ${bankDropActive ? "drop-active" : ""}`}
+        data-help="bank"
         onDragOver={(event) => {
           if (isSpinning) return;
           event.preventDefault();
@@ -1094,7 +1177,7 @@ function App() {
       >
         <h2>Task Bank</h2>
 
-        <form className="task-input-row" onSubmit={addTask}>
+        <form className="task-input-row" data-help="task-input" onSubmit={addTask}>
           <input
             className={`task-input ${inputIsHebrew ? "rtl-text" : "ltr-text"}`}
             type="text"
@@ -1110,7 +1193,7 @@ function App() {
           />
         </form>
 
-        <div className="task-actions">
+        <div className="task-actions" data-help="task-actions">
           <button className="add-btn" type="button" onClick={addTask} disabled={isSpinning}>
             Add
           </button>
@@ -1140,7 +1223,7 @@ function App() {
 
         {error ? <p className="task-error">{error}</p> : null}
 
-        <ol className="task-list">
+        <ol className="task-list" data-help="task-list">
           {bankTasks.length ? (
             bankTasks.map((task) => (
               <li key={task.id}>
@@ -1157,6 +1240,7 @@ function App() {
                       setSelectedTaskId(task.id);
                       setNewTaskLabel(task.label);
                       setError("");
+                      speakWord(task.label);
                     }}
                     dir={isHebrewText(task.label) ? "rtl" : "ltr"}
                   >
@@ -1187,12 +1271,14 @@ function App() {
               {wheelTasks.map((task) => (
                 <li key={task.id}>
                   <div className="task-item-row">
-                    <span
+                    <button
+                      type="button"
                       className={`task-item on-wheel ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
                       dir={isHebrewText(task.label) ? "rtl" : "ltr"}
+                      onClick={() => speakWord(task.label)}
                     >
                       {task.label}
-                    </span>
+                    </button>
                     <button
                       type="button"
                       className="wheel-toggle-btn remove"

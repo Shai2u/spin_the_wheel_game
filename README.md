@@ -130,6 +130,51 @@ Replace each placeholder path with your real image path after you add screenshot
   - Ensure system has voices for `he-IL`/`en-US` installed
 - If port `8088` is busy, stop the conflicting process or choose another port.
 
+## Deploying to Railway
+
+The app is production-ready and deploys automatically from GitHub via [Railway](https://railway.com).
+
+### One-time setup
+
+1. Push this repo to GitHub (already done).
+2. Go to [railway.com](https://railway.com) → log in with GitHub.
+3. **New Project** → **Deploy from GitHub repo** → select `spin_the_wheel_game`.
+4. In your service → **Variables** tab, add:
+
+   | Key | Value |
+   |---|---|
+   | `SECRET_KEY` | Any long random string |
+   | `DEBUG` | `False` |
+   | `ALLOWED_HOSTS` | `your-app-name.up.railway.app` |
+
+5. In **Settings → Start Command**, set:
+   ```
+   python manage.py migrate && python manage.py collectstatic --noinput && gunicorn backend.wsgi --bind 0.0.0.0:$PORT
+   ```
+6. Railway deploys. Visit the URL shown in the service dashboard.
+
+### Updating the live app
+
+Just push to `main`:
+```powershell
+git add .
+git commit -m "your message"
+git push origin main
+```
+Railway detects the push and redeploys automatically within ~1 minute.
+
+### Persistent data (SQLite)
+
+By default Railway resets the SQLite database on each redeploy. To make data persist:
+
+1. Railway → your project → **New** → **Volume**
+2. Mount path: `/app/data`
+3. In `backend/settings.py`, change the DB path to:
+   ```python
+   'NAME': '/app/data/db.sqlite3',
+   ```
+4. Push and redeploy.
+
 ## Recommended Next Additions
 
 - Basic test suite (Django endpoint tests + key frontend logic tests)

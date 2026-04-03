@@ -593,3 +593,140 @@ body.theme-night {
     max-width: min(92vw, 80dvh);
   }
 }
+
+/* ── Floating word callout ──────────────────────────────── */
+.floating-callout {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 500;
+  animation: callout-fade 2.8s ease forwards;
+}
+
+.floating-callout-word {
+  font-size: clamp(2.8rem, 11vw, 6.5rem);
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, #ff006e, #8338ec);
+  padding: 18px 40px;
+  border-radius: 28px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+  animation: callout-scale 2.8s ease forwards;
+  font-family: "Baloo 2", system-ui, sans-serif;
+  max-width: 90vw;
+  text-align: center;
+  word-break: break-word;
+}
+
+@keyframes callout-fade {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes callout-scale {
+  0%   { transform: scale(0.65); }
+  12%  { transform: scale(1.06); }
+  18%  { transform: scale(1); }
+  70%  { transform: scale(1); }
+  100% { transform: scale(0.92); }
+}
+
+/* ── Help mode ──────────────────────────────────────────── */
+.help-btn {
+  border: 0;
+  background: transparent;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 999px;
+  line-height: 1.4;
+  opacity: 0.65;
+  transition: opacity 150ms, background 150ms;
+  color: inherit;
+  border: 2px solid currentColor;
+}
+
+.help-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.help-spotlight {
+  position: fixed;
+  border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  z-index: 900;
+  transition: top 280ms ease, left 280ms ease, width 280ms ease, height 280ms ease;
+}
+
+.help-bubble {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 22px;
+  padding: 18px 22px 16px;
+  max-width: min(92vw, 460px);
+  width: max-content;
+  text-align: center;
+  z-index: 902;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.32);
+}
+
+.help-step-counter {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  opacity: 0.45;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.help-bubble-text {
+  margin: 0 0 14px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+  color: #1b1235;
+  line-height: 1.4;
+}
+
+.help-bubble-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.help-next-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 26px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  background: linear-gradient(135deg, #3a86ff, #8338ec);
+  color: #fff;
+  cursor: pointer;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+}
+
+.help-exit-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  background: #e0e7ff;
+  color: #3730a3;
+  cursor: pointer;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+}
