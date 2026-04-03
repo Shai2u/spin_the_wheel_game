@@ -195,6 +195,7 @@ function App() {
     lastTs: 0,
     velocity: 0,
   });
+  const spinQueueRef = useRef([]);
   const wheelGradient = useMemo(() => {
     if (!wheelTasks.length) {
       return "radial-gradient(circle at 40% 30%, #fffde7, #ffe8d6)";
@@ -351,6 +352,10 @@ function App() {
       setPresetName("");
     }
   }, [presets, selectedPresetId]);
+
+  useEffect(() => {
+    spinQueueRef.current = [];
+  }, [wheelTasks]);
 
   useEffect(() => {
     return () => {
@@ -534,26 +539,28 @@ function App() {
     }, durationMs + 30);
   }
 
-  function spinByButton() {
+  function getNextWinnerIndex(taskCount) {
+    if (!spinQueueRef.current.length) {
+      const arr = Array.from({ length: taskCount }, (_, i) => i);
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(getRandomUnit() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      spinQueueRef.current = arr;
+    }
+    return spinQueueRef.current.pop();
+  }
+
+  function spinRandom(holdMs) {
     if (!wheelTasks.length) {
-      setError("Add at least one task to the wheel first.");
+      setError("Add tasks to the wheel first.");
       return;
     }
     if (isSpinning) return;
 
     const sliceCount = wheelTasks.length;
     const angleStep = 360 / sliceCount;
-    let winnerIndex = Math.floor(getRandomUnit() * sliceCount);
-
-    // Slight anti-streak smoothing so repeated immediate winners are less frequent.
-    if (sliceCount > 2 && winnerTaskId) {
-      const lastWinnerIndex = wheelTasks.findIndex(
-        (task) => task.id === winnerTaskId
-      );
-      if (winnerIndex === lastWinnerIndex && getRandomUnit() < 0.75) {
-        winnerIndex = (winnerIndex + 1 + Math.floor(getRandomUnit() * (sliceCount - 1))) % sliceCount;
-      }
-    }
+    const winnerIndex = getNextWinnerIndex(sliceCount);
 
     const centerAngleFromTop = winnerIndex * angleStep + angleStep / 2;
     const jitter = (getRandomUnit() * 2 - 1) * (angleStep * 0.18);
@@ -562,9 +569,11 @@ function App() {
     const currentNormalized = normalizeDegrees(wheelRotation);
     const clockwiseDelta = (targetNormalized - currentNormalized + 360) % 360;
 
-    const turns = 7 + getRandomUnit() * 8;
+    // Longer hold = more rotations and longer spin duration.
+    const holdFactor = Math.min(1, (holdMs || 0) / 2000);
+    const turns = 7 + holdFactor * 8 + getRandomUnit() * 3;
     const targetRotation = wheelRotation + turns * 360 + clockwiseDelta;
-    const durationMs = 4300 + getRandomUnit() * 2600;
+    const durationMs = 4300 + holdFactor * 2000 + getRandomUnit() * 1500;
     spinTo(targetRotation, durationMs);
   }
 
@@ -590,9 +599,14 @@ function App() {
     if (isSpinning) return;
     if (event.target.closest(".slice-label")) return;
     if (!wheelTasks.length) {
-      setError("Drag tasks into the wheel first.");
+      setError("Use → to add tasks to the wheel first.");
       return;
     }
+
+    const pointerDownTime = performance.now();
+    const downX = event.clientX;
+    const downY = event.clientY;
+    let hasDragged = false;
 
     const startAngle = getPointerAngleDeg(event);
     dragSpinRef.current = {
@@ -601,12 +615,17 @@ function App() {
       startRotation: wheelRotation,
       currentRotation: wheelRotation,
       lastAngle: startAngle,
-      lastTs: performance.now(),
+      lastTs: pointerDownTime,
       velocity: 0,
     };
 
     const onPointerMove = (moveEvent) => {
       if (!dragSpinRef.current.active) return;
+      const dx = moveEvent.clientX - downX;
+      const dy = moveEvent.clientY - downY;
+      if (Math.sqrt(dx * dx + dy * dy) > 8) {
+        hasDragged = true;
+      }
       const nextAngle = getPointerAngleDeg(moveEvent);
       const deltaFromStart = normalizeDeltaAngle(nextAngle, dragSpinRef.current.startAngle);
       const now = performance.now();
@@ -622,11 +641,17 @@ function App() {
     };
 
     const onPointerUp = () => {
-      const { velocity } = dragSpinRef.current;
+      const holdMs = performance.now() - pointerDownTime;
       dragSpinRef.current.active = false;
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
 
+      if (!hasDragged) {
+        spinRandom(holdMs);
+        return;
+      }
+
+      const { velocity } = dragSpinRef.current;
       const speed = Math.min(Math.abs(velocity), 0.9);
       const direction = velocity >= 0 ? 1 : -1;
       const bonusRotation = direction * (360 * (2 + speed * 6));
@@ -921,25 +946,6 @@ function App() {
             </select>
           </div>
 
-          <div className="wheel-controls">
-            <button
-              type="button"
-              className="spin-btn"
-              onClick={spinByButton}
-              disabled={isSpinning}
-            >
-              {isSpinning ? "Spinning..." : "Spin"}
-            </button>
-            <button
-              type="button"
-              className="reset-btn"
-              onClick={resetWheel}
-              disabled={isSpinning || !wheelTasks.length}
-            >
-              Reset Wheel
-            </button>
-          </div>
-
           <div className="preset-editor">
             <div className="preset-top-row">
               <input
@@ -1130,6 +1136,15 @@ function App() {
             aria-label="Delete selected task"
           >
             🗑️
+          </button>
+          <button
+            className="reset-btn"
+            type="button"
+            onClick={resetWheel}
+            disabled={isSpinning || !wheelTasks.length}
+            title="Move all wheel tasks back to bank"
+          >
+            Reset
           </button>
         </div>
 
