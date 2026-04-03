@@ -931,19 +931,30 @@ function App() {
         <div className="wheel-headline">
           <div className="wheel-top-bar">
             <h1 className="wheel-title">Spin the Yarin!</h1>
-            <select
-              id="theme-select"
-              className="theme-select"
-              value={themeMode}
-              onChange={(event) => setThemeMode(event.target.value)}
-              title="Theme"
-            >
-              {THEME_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option[0].toUpperCase() + option.slice(1)}
-                </option>
-              ))}
-            </select>
+            <div className="top-bar-controls">
+              <button
+                type="button"
+                className={`mute-btn ${isMuted ? "is-muted" : ""}`}
+                onClick={() => setIsMuted((value) => !value)}
+                title={isMuted ? "Unmute voice" : "Mute voice"}
+                aria-label={isMuted ? "Unmute voice" : "Mute voice"}
+              >
+                {isMuted ? "🔇" : "🔊"}
+              </button>
+              <select
+                id="theme-select"
+                className="theme-select"
+                value={themeMode}
+                onChange={(event) => setThemeMode(event.target.value)}
+                title="Theme"
+              >
+                {THEME_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option[0].toUpperCase() + option.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="preset-editor">
@@ -1015,27 +1026,6 @@ function App() {
             </div>
           </div>
 
-          {winnerTaskId ? (
-            <>
-              <p className="winner-line">Selected: {winnerTaskLabel}</p>
-              <div className="speech-controls">
-                <button
-                  type="button"
-                  className="speech-btn"
-                  onClick={() => speakWinnerText(winnerTaskLabel)}
-                >
-                  Replay Voice
-                </button>
-                <button
-                  type="button"
-                  className="speech-btn"
-                  onClick={() => setIsMuted((value) => !value)}
-                >
-                  {isMuted ? "Unmute Voice" : "Mute Voice"}
-                </button>
-              </div>
-            </>
-          ) : null}
         </div>
 
         <div

@@ -86,6 +86,30 @@ body.theme-night {
   margin-bottom: 6px;
 }
 
+.top-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mute-btn {
+  border: 0;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 8px;
+  line-height: 1;
+  opacity: 1;
+  transition: opacity 150ms;
+}
+
+.mute-btn.is-muted {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
 .wheel-title {
   margin: 0;
   font-size: 1.5rem;
