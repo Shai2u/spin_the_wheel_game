@@ -615,7 +615,7 @@ body.theme-night {
   border-radius: 28px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
   animation: callout-scale 2.8s ease forwards;
-  font-family: "Baloo 2", system-ui, sans-serif;
+  font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
   max-width: 90vw;
   text-align: center;
   word-break: break-word;
