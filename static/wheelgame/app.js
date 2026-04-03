@@ -1,5 +1,7 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
+const IS_TOUCH_DEVICE = navigator.maxTouchPoints > 0 || "ontouchstart" in window;
+
 const STORAGE_KEY = "wheelgame_task_bank_v1";
 const SLICE_COLORS = [
   "#ffadad",
@@ -894,9 +896,23 @@ function App() {
     <main className="app-shell">
       <section className="wheel-area">
         <div className="wheel-headline">
-          <h1>Spin the Yarin!</h1>
-          <p>Drag tasks into slices. Drag labels back to the bank to remove.</p>
-          <span className="pill">Drag & Drop enabled</span>
+          <div className="wheel-top-bar">
+            <h1 className="wheel-title">Spin the Yarin!</h1>
+            <select
+              id="theme-select"
+              className="theme-select"
+              value={themeMode}
+              onChange={(event) => setThemeMode(event.target.value)}
+              title="Theme"
+            >
+              {THEME_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option[0].toUpperCase() + option.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="wheel-controls">
             <button
               type="button"
@@ -914,25 +930,10 @@ function App() {
             >
               Reset Wheel
             </button>
-            <label className="theme-label" htmlFor="theme-select">
-              Theme
-            </label>
-            <select
-              id="theme-select"
-              className="theme-select"
-              value={themeMode}
-              onChange={(event) => setThemeMode(event.target.value)}
-            >
-              {THEME_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option[0].toUpperCase() + option.slice(1)}
-                </option>
-              ))}
-            </select>
           </div>
+
           <div className="preset-editor">
-            <p className="preset-title">Wheel Presets</p>
-            <div className="preset-row">
+            <div className="preset-top-row">
               <input
                 className={`preset-input ${isHebrewText(presetName) ? "rtl-text" : "ltr-text"}`}
                 type="text"
@@ -942,8 +943,6 @@ function App() {
                 onChange={(event) => setPresetName(event.target.value)}
                 dir={isHebrewText(presetName) ? "rtl" : "ltr"}
               />
-            </div>
-            <div className="preset-row">
               <select
                 className="preset-select"
                 value={selectedPresetId || ""}
@@ -1001,7 +1000,7 @@ function App() {
               </button>
             </div>
           </div>
-          <p className="wheel-help">You can also drag the wheel to spin it.</p>
+
           {winnerTaskId ? (
             <>
               <p className="winner-line">Selected: {winnerTaskLabel}</p>
@@ -1068,17 +1067,19 @@ function App() {
                     isHebrewText(task.label) ? "rtl-text" : "ltr-text"
                   } ${winnerTaskId === task.id ? "is-winner" : ""}`}
                   style={buildSliceLabelStyle(index, wheelTasks.length)}
-                  draggable={!isSpinning}
+                  draggable={!isSpinning && !IS_TOUCH_DEVICE}
                   onDragStart={() => onTaskDragStart("wheel", task.id)}
                   onDragEnd={onTaskDragEnd}
                   dir={isHebrewText(task.label) ? "rtl" : "ltr"}
-                  title="Drag back to task bank"
+                  title={IS_TOUCH_DEVICE ? task.label : "Drag back to task bank"}
                 >
                   {task.label}
                 </button>
               ))
             ) : (
-              <p className="wheel-empty-state">Wheel is empty. Drop tasks here.</p>
+              <p className="wheel-empty-state">
+                {IS_TOUCH_DEVICE ? "Use → to add tasks to the wheel" : "Wheel is empty. Drop tasks here."}
+              </p>
             )}
           </div>
         </div>
@@ -1097,7 +1098,6 @@ function App() {
         onDrop={onBankDrop}
       >
         <h2>Task Bank</h2>
-        <p>Add, edit, remove, and drag tasks to the wheel.</p>
 
         <form className="task-input-row" onSubmit={addTask}>
           <input
@@ -1140,29 +1140,71 @@ function App() {
           {bankTasks.length ? (
             bankTasks.map((task) => (
               <li key={task.id}>
-                <button
-                  type="button"
-                  className={`task-item ${
-                    selectedTaskId === task.id ? "is-selected" : ""
-                  } ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
-                  draggable={!isSpinning}
-                  onDragStart={() => onTaskDragStart("bank", task.id)}
-                  onDragEnd={onTaskDragEnd}
-                  onClick={() => {
-                    setSelectedTaskId(task.id);
-                    setNewTaskLabel(task.label);
-                    setError("");
-                  }}
-                  dir={isHebrewText(task.label) ? "rtl" : "ltr"}
-                >
-                  {task.label}
-                </button>
+                <div className="task-item-row">
+                  <button
+                    type="button"
+                    className={`task-item ${
+                      selectedTaskId === task.id ? "is-selected" : ""
+                    } ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
+                    draggable={!isSpinning && !IS_TOUCH_DEVICE}
+                    onDragStart={() => onTaskDragStart("bank", task.id)}
+                    onDragEnd={onTaskDragEnd}
+                    onClick={() => {
+                      setSelectedTaskId(task.id);
+                      setNewTaskLabel(task.label);
+                      setError("");
+                    }}
+                    dir={isHebrewText(task.label) ? "rtl" : "ltr"}
+                  >
+                    {task.label}
+                  </button>
+                  <button
+                    type="button"
+                    className="wheel-toggle-btn add"
+                    onClick={() => moveTaskToWheel(task.id)}
+                    disabled={isSpinning}
+                    title="Add to wheel"
+                    aria-label="Add to wheel"
+                  >
+                    →
+                  </button>
+                </div>
               </li>
             ))
           ) : (
             <li className="empty-state">No tasks yet. Add one above.</li>
           )}
         </ol>
+
+        {wheelTasks.length > 0 && (
+          <div className="on-wheel-section">
+            <p className="on-wheel-label">On Wheel</p>
+            <ol className="task-list">
+              {wheelTasks.map((task) => (
+                <li key={task.id}>
+                  <div className="task-item-row">
+                    <span
+                      className={`task-item on-wheel ${isHebrewText(task.label) ? "rtl-text" : "ltr-text"}`}
+                      dir={isHebrewText(task.label) ? "rtl" : "ltr"}
+                    >
+                      {task.label}
+                    </span>
+                    <button
+                      type="button"
+                      className="wheel-toggle-btn remove"
+                      onClick={() => moveTaskToBank(task.id)}
+                      disabled={isSpinning}
+                      title="Remove from wheel"
+                      aria-label="Remove from wheel"
+                    >
+                      ←
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
       </aside>
     </main>
   );
