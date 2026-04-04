@@ -473,12 +473,13 @@ body.theme-night {
 }
 
 .preset-actions {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 5px;
 }
 
 .preset-btn {
+  flex: 1 1 calc(33% - 5px);
   border: 0;
   border-radius: 999px;
   padding: 6px 8px;
@@ -729,4 +730,219 @@ body.theme-night {
   color: #3730a3;
   cursor: pointer;
   font-family: Arial, "Arial Hebrew", "Noto Sans Hebrew", sans-serif;
+}
+
+/* ── Role button (top bar) ─────────────────────────── */
+.role-btn {
+  border: 0;
+  background: #ffffffbb;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #273043;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-btn:hover {
+  background: #fff;
+}
+
+/* ── Modal overlay ─────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.role-modal {
+  background: #fff;
+  border-radius: 22px;
+  padding: 22px 20px 18px;
+  width: min(360px, 92vw);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.28);
+  position: relative;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: 0;
+  background: #f0f0f0;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  color: #555;
+}
+
+.modal-close-btn:hover {
+  background: #e0e0e0;
+}
+
+.modal-title {
+  margin: 0 0 14px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #1b1235;
+}
+
+.modal-desc {
+  margin: -8px 0 12px;
+  font-size: 0.88rem;
+  opacity: 0.65;
+  line-height: 1.4;
+}
+
+.modal-input {
+  width: 100%;
+  border: 2px solid #d8e2ff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 0.98rem;
+  background: #f8faff;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.modal-input:focus {
+  outline: none;
+  border-color: #70a1ff;
+}
+
+.modal-error {
+  margin: 2px 0 8px;
+  color: #c81d25;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.modal-confirm-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.95rem;
+  background: linear-gradient(135deg, #3a86ff, #8338ec);
+  color: #fff;
+  cursor: pointer;
+}
+
+.modal-cancel-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: #e8e8e8;
+  color: #555;
+  cursor: pointer;
+}
+
+.modal-cancel-btn:hover {
+  background: #d8d8d8;
+}
+
+/* ── Role list ─────────────────────────────────────── */
+.role-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.role-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.role-name-btn {
+  flex: 1;
+  text-align: left;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f4f6ff;
+  color: #1b1235;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 120ms;
+}
+
+.role-name-btn:hover {
+  background: #e8edff;
+}
+
+.role-item.is-current .role-name-btn {
+  border-color: #3a86ff;
+  background: #dbeafe;
+}
+
+.role-current-dot {
+  color: #3a86ff;
+  font-size: 0.7rem;
+}
+
+.role-delete-btn {
+  border: 0;
+  background: #fff0f0;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 120ms;
+}
+
+.role-delete-btn:hover {
+  background: #ffd6d6;
+}
+
+.role-add-btn {
+  width: 100%;
+  border: 2px dashed #c0c9e8;
+  border-radius: 12px;
+  padding: 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #3a5bb5;
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
+}
+
+.role-add-btn:hover {
+  background: #f0f4ff;
+  border-color: #3a86ff;
 }

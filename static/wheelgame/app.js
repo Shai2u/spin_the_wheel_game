@@ -39,18 +39,31 @@ function isHebrewText(value) {
 
 function getSavedState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    return {};
-  }
-
+  if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return { bankTasks: parsed };
+    if (!parsed) return null;
+    // v1 → v2: migrate flat structure into roles object
+    if (!parsed.version || parsed.version < 2) {
+      const bankTasks = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.bankTasks) ? parsed.bankTasks : []);
+      return {
+        version: 2,
+        currentRole: "יארין",
+        rolesPassword: null,
+        roles: {
+          "יארין": {
+            bankTasks,
+            wheelTasks: Array.isArray(parsed.wheelTasks) ? parsed.wheelTasks : [],
+            presets: Array.isArray(parsed.presets) ? parsed.presets : [],
+          },
+        },
+        isMuted: Boolean(parsed.isMuted),
+        themeMode: typeof parsed.themeMode === "string" ? parsed.themeMode : "auto",
+      };
     }
-    return parsed || {};
+    return parsed;
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -150,15 +163,30 @@ function App() {
     []
   );
   const savedState = useMemo(() => getSavedState(), []);
-  const [bankTasks, setBankTasks] = useState(() =>
-    Array.isArray(savedState.bankTasks) ? savedState.bankTasks : starterTasks
-  );
-  const [wheelTasks, setWheelTasks] = useState(() =>
-    Array.isArray(savedState.wheelTasks) ? savedState.wheelTasks : []
-  );
-  const [presets, setPresets] = useState(() =>
-    Array.isArray(savedState.presets) ? savedState.presets : []
-  );
+  const [bankTasks, setBankTasks] = useState(() => {
+    const role = savedState?.currentRole || "יארין";
+    const d = savedState?.roles?.[role] || {};
+    return Array.isArray(d.bankTasks) ? d.bankTasks : starterTasks;
+  });
+  const [wheelTasks, setWheelTasks] = useState(() => {
+    const role = savedState?.currentRole || "יארין";
+    const d = savedState?.roles?.[role] || {};
+    return Array.isArray(d.wheelTasks) ? d.wheelTasks : [];
+  });
+  const [presets, setPresets] = useState(() => {
+    const role = savedState?.currentRole || "יארין";
+    const d = savedState?.roles?.[role] || {};
+    return Array.isArray(d.presets) ? d.presets : [];
+  });
+  const [roles, setRoles] = useState(() => savedState?.roles || { "יארין": {} });
+  const [currentRole, setCurrentRole] = useState(() => savedState?.currentRole || "יארין");
+  const [rolesPassword, setRolesPassword] = useState(() => savedState?.rolesPassword || null);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleModalStep, setRoleModalStep] = useState("list");
+  const [roleModalInput, setRoleModalInput] = useState("");
+  const [roleModalPasswordInput, setRoleModalPasswordInput] = useState("");
+  const [roleModalError, setRoleModalError] = useState("");
+  const [pendingRoleAction, setPendingRoleAction] = useState(null);
   const [newTaskLabel, setNewTaskLabel] = useState("");
   const [presetName, setPresetName] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState(null);
@@ -172,9 +200,9 @@ function App() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [winnerTaskId, setWinnerTaskId] = useState(null);
   const [needleKick, setNeedleKick] = useState(false);
-  const [isMuted, setIsMuted] = useState(() => Boolean(savedState.isMuted));
+  const [isMuted, setIsMuted] = useState(() => Boolean(savedState?.isMuted));
   const [themeMode, setThemeMode] = useState(() =>
-    THEME_OPTIONS.includes(savedState.themeMode) ? savedState.themeMode : "auto"
+    THEME_OPTIONS.includes(savedState?.themeMode) ? savedState.themeMode : "auto"
   );
   const [clockHour, setClockHour] = useState(() => new Date().getHours());
   const [backendSyncReady, setBackendSyncReady] = useState(false);
@@ -182,10 +210,11 @@ function App() {
   const [helpMode, setHelpMode] = useState(false);
   const [helpStep, setHelpStep] = useState(0);
   const [helpRect, setHelpRect] = useState(null);
-  const hasLocalMeaningfulState = useMemo(
-    () => hasMeaningfulState(savedState),
-    [savedState]
-  );
+  const hasLocalMeaningfulState = useMemo(() => {
+    const role = savedState?.currentRole || "יארין";
+    const d = savedState?.roles?.[role] || {};
+    return hasMeaningfulState(d);
+  }, [savedState]);
   const inputIsHebrew = isHebrewText(newTaskLabel);
   const wheelRef = useRef(null);
   const spinTimeoutRef = useRef(null);
@@ -297,14 +326,15 @@ function App() {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
-        bankTasks,
-        wheelTasks,
-        presets,
+        version: 2,
+        currentRole,
+        rolesPassword,
+        roles: { ...roles, [currentRole]: { bankTasks, wheelTasks, presets } },
         isMuted,
         themeMode,
       })
     );
-  }, [bankTasks, wheelTasks, presets, isMuted, themeMode]);
+  }, [bankTasks, wheelTasks, presets, isMuted, themeMode, currentRole, roles, rolesPassword]);
 
   useEffect(() => {
     if (!backendSyncReady) {
@@ -901,6 +931,122 @@ function App() {
     setError("");
   }
 
+  function duplicateSelectedPreset() {
+    if (isSpinning) return;
+    if (!selectedPreset) { setError("Select a preset first."); return; }
+    let newName = `Copy of ${selectedPreset.name}`;
+    let counter = 2;
+    while (presets.some((p) => normalizeLabelKey(p.name) === normalizeLabelKey(newName))) {
+      newName = `Copy of ${selectedPreset.name} (${counter++})`;
+    }
+    const newPreset = { id: crypto.randomUUID(), name: newName, itemLabels: [...selectedPreset.itemLabels] };
+    setPresets((current) => [...current, newPreset]);
+    setSelectedPresetId(newPreset.id);
+    setPresetName(newName);
+    setError("");
+  }
+
+  function switchRole(name) {
+    if (name === currentRole) { setShowRoleModal(false); return; }
+    const newRoleData = roles[name] || {};
+    setRoles((prev) => ({ ...prev, [currentRole]: { bankTasks, wheelTasks, presets } }));
+    setBankTasks(Array.isArray(newRoleData.bankTasks) ? newRoleData.bankTasks : []);
+    setWheelTasks(Array.isArray(newRoleData.wheelTasks) ? newRoleData.wheelTasks : []);
+    setPresets(Array.isArray(newRoleData.presets) ? newRoleData.presets : []);
+    setCurrentRole(name);
+    setSelectedTaskId(null);
+    setNewTaskLabel("");
+    setPresetName("");
+    setSelectedPresetId(null);
+    setWinnerTaskId(null);
+    setShowRoleModal(false);
+  }
+
+  function openRoleModal() {
+    setRoleModalStep("list");
+    setRoleModalInput("");
+    setRoleModalPasswordInput("");
+    setRoleModalError("");
+    setPendingRoleAction(null);
+    setShowRoleModal(true);
+  }
+
+  function startAddRole() {
+    setRoleModalInput("");
+    setRoleModalPasswordInput("");
+    setRoleModalError("");
+    setPendingRoleAction({ type: "add" });
+    setRoleModalStep(rolesPassword ? "verify-password" : "set-password");
+  }
+
+  function startDeleteRole(name) {
+    setRoleModalInput("");
+    setRoleModalPasswordInput("");
+    setRoleModalError("");
+    setPendingRoleAction({ type: "delete", name });
+    setRoleModalStep(rolesPassword ? "verify-password" : "set-password");
+  }
+
+  function confirmSetPassword() {
+    const pw = roleModalPasswordInput.trim();
+    const confirm = roleModalInput.trim();
+    if (!pw) { setRoleModalError("Enter a password."); return; }
+    if (pw !== confirm) { setRoleModalError("Passwords do not match."); return; }
+    setRolesPassword(pw);
+    setRoleModalPasswordInput("");
+    setRoleModalInput("");
+    setRoleModalError("");
+    if (pendingRoleAction?.type === "add") setRoleModalStep("new-name");
+    else if (pendingRoleAction?.type === "delete") confirmDeleteRole(pendingRoleAction.name);
+  }
+
+  function verifyRolesPassword() {
+    if (roleModalPasswordInput !== rolesPassword) { setRoleModalError("Wrong password."); return; }
+    setRoleModalPasswordInput("");
+    setRoleModalError("");
+    if (pendingRoleAction?.type === "add") {
+      setRoleModalInput("");
+      setRoleModalStep("new-name");
+    } else if (pendingRoleAction?.type === "delete") {
+      confirmDeleteRole(pendingRoleAction.name);
+    }
+  }
+
+  function confirmAddRole() {
+    const name = roleModalInput.trim();
+    if (!name) { setRoleModalError("Enter a name."); return; }
+    if (roles[name]) { setRoleModalError("Role already exists."); return; }
+    setRoles((prev) => ({ ...prev, [name]: { bankTasks: [], wheelTasks: [], presets: [] } }));
+    setRoleModalStep("list");
+    setRoleModalInput("");
+    setRoleModalError("");
+    setPendingRoleAction(null);
+  }
+
+  function confirmDeleteRole(name) {
+    const allRoles = { ...roles };
+    if (Object.keys(allRoles).length <= 1) { setRoleModalError("Cannot delete the only role."); return; }
+    delete allRoles[name];
+    setRoles(allRoles);
+    if (name === currentRole) {
+      const fallback = Object.keys(allRoles)[0];
+      const d = allRoles[fallback] || {};
+      setBankTasks(Array.isArray(d.bankTasks) ? d.bankTasks : []);
+      setWheelTasks(Array.isArray(d.wheelTasks) ? d.wheelTasks : []);
+      setPresets(Array.isArray(d.presets) ? d.presets : []);
+      setCurrentRole(fallback);
+      setSelectedTaskId(null);
+      setNewTaskLabel("");
+      setPresetName("");
+      setSelectedPresetId(null);
+      setWinnerTaskId(null);
+    }
+    setRoleModalStep("list");
+    setPendingRoleAction(null);
+    setRoleModalPasswordInput("");
+    setRoleModalError("");
+  }
+
   function exitHelp() {
     setHelpMode(false);
     setHelpStep(0);
@@ -964,6 +1110,79 @@ function App() {
 
   return (
     <main className="app-shell">
+      {showRoleModal && (
+        <div className="modal-overlay" onClick={() => setShowRoleModal(false)}>
+          <div className="role-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" type="button" onClick={() => setShowRoleModal(false)}>×</button>
+
+            {roleModalStep === "list" && (
+              <>
+                <h3 className="modal-title">Roles</h3>
+                <ul className="role-list">
+                  {Object.keys(roles).map((name) => (
+                    <li key={name} className={`role-item ${name === currentRole ? "is-current" : ""}`}>
+                      <button className="role-name-btn" type="button" onClick={() => switchRole(name)}>
+                        {name === currentRole && <span className="role-current-dot">●</span>}
+                        {name}
+                      </button>
+                      {Object.keys(roles).length > 1 && (
+                        <button
+                          className="role-delete-btn"
+                          type="button"
+                          onClick={() => startDeleteRole(name)}
+                          title={`Delete ${name}`}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <button className="role-add-btn" type="button" onClick={startAddRole}>+ Add Role</button>
+              </>
+            )}
+
+            {roleModalStep === "set-password" && (
+              <>
+                <h3 className="modal-title">Set Manager Password</h3>
+                <p className="modal-desc">Protects adding and removing roles.</p>
+                <input className="modal-input" type="password" placeholder="New password..." value={roleModalPasswordInput} autoFocus onChange={(e) => setRoleModalPasswordInput(e.target.value)} />
+                <input className="modal-input" type="password" placeholder="Confirm password..." value={roleModalInput} onChange={(e) => setRoleModalInput(e.target.value)} />
+                {roleModalError && <p className="modal-error">{roleModalError}</p>}
+                <div className="modal-actions">
+                  <button className="modal-cancel-btn" type="button" onClick={() => { setRoleModalStep("list"); setRoleModalError(""); }}>Cancel</button>
+                  <button className="modal-confirm-btn" type="button" onClick={confirmSetPassword}>Set Password</button>
+                </div>
+              </>
+            )}
+
+            {roleModalStep === "verify-password" && (
+              <>
+                <h3 className="modal-title">{pendingRoleAction?.type === "add" ? "Add Role" : `Delete "${pendingRoleAction?.name}"`}</h3>
+                <input className="modal-input" type="password" placeholder="Manager password..." value={roleModalPasswordInput} autoFocus onChange={(e) => setRoleModalPasswordInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && verifyRolesPassword()} />
+                {roleModalError && <p className="modal-error">{roleModalError}</p>}
+                <div className="modal-actions">
+                  <button className="modal-cancel-btn" type="button" onClick={() => { setRoleModalStep("list"); setRoleModalError(""); setRoleModalPasswordInput(""); }}>Cancel</button>
+                  <button className="modal-confirm-btn" type="button" onClick={verifyRolesPassword}>Continue</button>
+                </div>
+              </>
+            )}
+
+            {roleModalStep === "new-name" && (
+              <>
+                <h3 className="modal-title">New Role Name</h3>
+                <input className="modal-input" type="text" placeholder="e.g. Daddy, Mommy..." value={roleModalInput} autoFocus onChange={(e) => setRoleModalInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && confirmAddRole()} />
+                {roleModalError && <p className="modal-error">{roleModalError}</p>}
+                <div className="modal-actions">
+                  <button className="modal-cancel-btn" type="button" onClick={() => { setRoleModalStep("list"); setRoleModalError(""); setRoleModalInput(""); }}>Cancel</button>
+                  <button className="modal-confirm-btn" type="button" onClick={confirmAddRole}>Add Role</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {floatingWord && (
         <div key={floatingWord.key} className="floating-callout" aria-live="assertive">
           <span className={`floating-callout-word ${isHebrewText(floatingWord.text) ? "rtl-text" : "ltr-text"}`}>
@@ -1002,6 +1221,14 @@ function App() {
           <div className="wheel-top-bar">
             <h1 className="wheel-title">Spin the Yarin!</h1>
             <div className="top-bar-controls">
+              <button
+                type="button"
+                className="role-btn"
+                onClick={openRoleModal}
+                title="Switch role"
+              >
+                👤 {currentRole}
+              </button>
               <button
                 type="button"
                 className="help-btn"
@@ -1071,38 +1298,11 @@ function App() {
               </select>
             </div>
             <div className="preset-actions">
-              <button
-                type="button"
-                className="preset-btn"
-                onClick={savePresetAsNew}
-                disabled={isSpinning}
-              >
-                Save New
-              </button>
-              <button
-                type="button"
-                className="preset-btn"
-                onClick={updateSelectedPreset}
-                disabled={isSpinning || !selectedPresetId}
-              >
-                Save Edit
-              </button>
-              <button
-                type="button"
-                className="preset-btn danger"
-                onClick={deleteSelectedPreset}
-                disabled={isSpinning || !selectedPresetId}
-              >
-                Remove
-              </button>
-              <button
-                type="button"
-                className="preset-btn apply"
-                onClick={applySelectedPreset}
-                disabled={isSpinning || !selectedPresetId}
-              >
-                Apply
-              </button>
+              <button type="button" className="preset-btn" onClick={savePresetAsNew} disabled={isSpinning}>Save New</button>
+              <button type="button" className="preset-btn" onClick={updateSelectedPreset} disabled={isSpinning || !selectedPresetId}>Save Edit</button>
+              <button type="button" className="preset-btn" onClick={duplicateSelectedPreset} disabled={isSpinning || !selectedPresetId}>Dup</button>
+              <button type="button" className="preset-btn danger" onClick={deleteSelectedPreset} disabled={isSpinning || !selectedPresetId}>Remove</button>
+              <button type="button" className="preset-btn apply" onClick={applySelectedPreset} disabled={isSpinning || !selectedPresetId}>Apply</button>
             </div>
           </div>
 
