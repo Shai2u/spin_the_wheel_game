@@ -912,9 +912,9 @@ body.theme-night {
   font-size: 0.7rem;
 }
 
+.role-rename-btn,
 .role-delete-btn {
   border: 0;
-  background: #fff0f0;
   border-radius: 10px;
   width: 36px;
   height: 36px;
@@ -922,6 +922,18 @@ body.theme-night {
   cursor: pointer;
   flex-shrink: 0;
   transition: background 120ms;
+}
+
+.role-rename-btn {
+  background: #f0f4ff;
+}
+
+.role-rename-btn:hover {
+  background: #dbeafe;
+}
+
+.role-delete-btn {
+  background: #fff0f0;
 }
 
 .role-delete-btn:hover {

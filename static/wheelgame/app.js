@@ -48,10 +48,10 @@ function getSavedState() {
       const bankTasks = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.bankTasks) ? parsed.bankTasks : []);
       return {
         version: 2,
-        currentRole: "יארין",
+        currentRole: "Yarin",
         rolesPassword: null,
         roles: {
-          "יארין": {
+          "Yarin": {
             bankTasks,
             wheelTasks: Array.isArray(parsed.wheelTasks) ? parsed.wheelTasks : [],
             presets: Array.isArray(parsed.presets) ? parsed.presets : [],
@@ -164,22 +164,22 @@ function App() {
   );
   const savedState = useMemo(() => getSavedState(), []);
   const [bankTasks, setBankTasks] = useState(() => {
-    const role = savedState?.currentRole || "יארין";
+    const role = savedState?.currentRole || "Yarin";
     const d = savedState?.roles?.[role] || {};
     return Array.isArray(d.bankTasks) ? d.bankTasks : starterTasks;
   });
   const [wheelTasks, setWheelTasks] = useState(() => {
-    const role = savedState?.currentRole || "יארין";
+    const role = savedState?.currentRole || "Yarin";
     const d = savedState?.roles?.[role] || {};
     return Array.isArray(d.wheelTasks) ? d.wheelTasks : [];
   });
   const [presets, setPresets] = useState(() => {
-    const role = savedState?.currentRole || "יארין";
+    const role = savedState?.currentRole || "Yarin";
     const d = savedState?.roles?.[role] || {};
     return Array.isArray(d.presets) ? d.presets : [];
   });
-  const [roles, setRoles] = useState(() => savedState?.roles || { "יארין": {} });
-  const [currentRole, setCurrentRole] = useState(() => savedState?.currentRole || "יארין");
+  const [roles, setRoles] = useState(() => savedState?.roles || { "Yarin": {} });
+  const [currentRole, setCurrentRole] = useState(() => savedState?.currentRole || "Yarin");
   const [rolesPassword, setRolesPassword] = useState(() => savedState?.rolesPassword || null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleModalStep, setRoleModalStep] = useState("list");
@@ -211,7 +211,7 @@ function App() {
   const [helpStep, setHelpStep] = useState(0);
   const [helpRect, setHelpRect] = useState(null);
   const hasLocalMeaningfulState = useMemo(() => {
-    const role = savedState?.currentRole || "יארין";
+    const role = savedState?.currentRole || "Yarin";
     const d = savedState?.roles?.[role] || {};
     return hasMeaningfulState(d);
   }, [savedState]);
@@ -1023,6 +1023,31 @@ function App() {
     setPendingRoleAction(null);
   }
 
+  function startRenameRole(name) {
+    setRoleModalInput(name);
+    setRoleModalError("");
+    setPendingRoleAction({ type: "rename", name });
+    setRoleModalStep("rename");
+  }
+
+  function confirmRenameRole() {
+    const newName = roleModalInput.trim();
+    const oldName = pendingRoleAction?.name;
+    if (!newName) { setRoleModalError("Enter a name."); return; }
+    if (newName === oldName) { setRoleModalStep("list"); return; }
+    if (roles[newName]) { setRoleModalError("Role already exists."); return; }
+    const updatedRoles = {};
+    for (const [k, v] of Object.entries(roles)) {
+      updatedRoles[k === oldName ? newName : k] = v;
+    }
+    setRoles(updatedRoles);
+    if (currentRole === oldName) setCurrentRole(newName);
+    setRoleModalStep("list");
+    setRoleModalInput("");
+    setRoleModalError("");
+    setPendingRoleAction(null);
+  }
+
   function confirmDeleteRole(name) {
     const allRoles = { ...roles };
     if (Object.keys(allRoles).length <= 1) { setRoleModalError("Cannot delete the only role."); return; }
@@ -1125,6 +1150,14 @@ function App() {
                         {name === currentRole && <span className="role-current-dot">●</span>}
                         {name}
                       </button>
+                      <button
+                        className="role-rename-btn"
+                        type="button"
+                        onClick={() => startRenameRole(name)}
+                        title={`Rename ${name}`}
+                      >
+                        ✏️
+                      </button>
                       {Object.keys(roles).length > 1 && (
                         <button
                           className="role-delete-btn"
@@ -1176,6 +1209,18 @@ function App() {
                 <div className="modal-actions">
                   <button className="modal-cancel-btn" type="button" onClick={() => { setRoleModalStep("list"); setRoleModalError(""); setRoleModalInput(""); }}>Cancel</button>
                   <button className="modal-confirm-btn" type="button" onClick={confirmAddRole}>Add Role</button>
+                </div>
+              </>
+            )}
+
+            {roleModalStep === "rename" && (
+              <>
+                <h3 className="modal-title">Rename "{pendingRoleAction?.name}"</h3>
+                <input className="modal-input" type="text" value={roleModalInput} autoFocus onChange={(e) => setRoleModalInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && confirmRenameRole()} />
+                {roleModalError && <p className="modal-error">{roleModalError}</p>}
+                <div className="modal-actions">
+                  <button className="modal-cancel-btn" type="button" onClick={() => { setRoleModalStep("list"); setRoleModalError(""); setRoleModalInput(""); }}>Cancel</button>
+                  <button className="modal-confirm-btn" type="button" onClick={confirmRenameRole}>Rename</button>
                 </div>
               </>
             )}
