@@ -255,21 +255,6 @@ body.theme-night {
   border-radius: 50%;
 }
 
-.wheel-hub {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 11%;
-  height: 11%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 38% 36%, #fff 0%, #d0d8f0 55%, #a8b4d8 100%);
-  box-shadow:
-    0 2px 8px rgba(0, 0, 0, 0.35),
-    inset 0 1px 3px rgba(255, 255, 255, 0.9);
-  z-index: 4;
-  pointer-events: none;
-}
 
 .wheel-needle {
   position: absolute;

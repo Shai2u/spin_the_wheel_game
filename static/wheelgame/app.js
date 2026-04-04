@@ -294,15 +294,19 @@ function App() {
 
         const state = data.state;
 
-        // Roles are always authoritative from the backend (global across devices)
-        if (state.rolesData && typeof state.rolesData === "object") {
+        // Roles structure from backend is always used (global across devices),
+        // but only overwrite local task data if the backend actually has meaningful content.
+        if (state.rolesData && typeof state.rolesData === "object" && Object.keys(state.rolesData).length > 0) {
           setRoles(state.rolesData);
           const backendRole = state.currentRole || "Yarin";
           setCurrentRole(backendRole);
           const rd = state.rolesData[backendRole] || {};
-          if (Array.isArray(rd.bankTasks)) setBankTasks(rd.bankTasks);
-          if (Array.isArray(rd.wheelTasks)) setWheelTasks(rd.wheelTasks);
-          if (Array.isArray(rd.presets)) setPresets(rd.presets);
+          const backendHasTasks = hasMeaningfulState({ bankTasks: rd.bankTasks, wheelTasks: rd.wheelTasks, presets: rd.presets });
+          if (backendHasTasks || !hasLocalMeaningfulState) {
+            if (Array.isArray(rd.bankTasks)) setBankTasks(rd.bankTasks);
+            if (Array.isArray(rd.wheelTasks)) setWheelTasks(rd.wheelTasks);
+            if (Array.isArray(rd.presets)) setPresets(rd.presets);
+          }
         } else {
           const shouldApplyBackend = hasMeaningfulState(state) || !hasLocalMeaningfulState;
           if (shouldApplyBackend) {
@@ -1414,7 +1418,6 @@ function App() {
                 : "none",
             }}
           >
-            <div className="wheel-hub" />
             {wheelTasks.length ? (
               wheelTasks.map((task, index) => (
                 <button
