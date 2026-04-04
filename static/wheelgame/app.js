@@ -246,13 +246,19 @@ function App() {
     }
 
     const angleStep = 360 / wheelTasks.length;
-    const slices = wheelTasks.map((_, index) => {
+    const d = Math.min(1.6, angleStep * 0.025); // divider half-width in degrees
+    const stops = wheelTasks.flatMap((_, index) => {
       const start = index * angleStep;
-      const end = start + angleStep;
+      const end = (index + 1) * angleStep;
       const color = SLICE_COLORS[index % SLICE_COLORS.length];
-      return `${color} ${start}deg ${end}deg`;
+      return [
+        `${color} ${start}deg`,
+        `${color} ${end - d * 2}deg`,
+        `rgba(255,255,255,0.55) ${end - d * 2}deg`,
+        `rgba(255,255,255,0.55) ${end}deg`,
+      ];
     });
-    return `conic-gradient(${slices.join(", ")})`;
+    return `conic-gradient(${stops.join(", ")})`;
   }, [wheelTasks]);
   const winnerTaskLabel = useMemo(
     () => wheelTasks.find((task) => task.id === winnerTaskId)?.label || "",
@@ -1379,6 +1385,7 @@ function App() {
                 : "none",
             }}
           >
+            <div className="wheel-hub" />
             {wheelTasks.length ? (
               wheelTasks.map((task, index) => (
                 <button
