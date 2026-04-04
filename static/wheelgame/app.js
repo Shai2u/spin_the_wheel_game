@@ -180,7 +180,7 @@ function App() {
   });
   const [roles, setRoles] = useState(() => savedState?.roles || { "Yarin": {} });
   const [currentRole, setCurrentRole] = useState(() => savedState?.currentRole || "Yarin");
-  const [rolesPassword, setRolesPassword] = useState(() => savedState?.rolesPassword || null);
+  const [isRolesPasswordSet, setIsRolesPasswordSet] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [roleModalStep, setRoleModalStep] = useState("list");
   const [roleModalInput, setRoleModalInput] = useState("");
@@ -293,26 +293,30 @@ function App() {
         }
 
         const state = data.state;
-        const shouldApplyBackend =
-          hasMeaningfulState(state) || !hasLocalMeaningfulState;
 
-        if (shouldApplyBackend) {
-          if (Array.isArray(state.bankTasks)) {
-            setBankTasks(state.bankTasks);
-          }
-          if (Array.isArray(state.wheelTasks)) {
-            setWheelTasks(state.wheelTasks);
-          }
-          if (Array.isArray(state.presets)) {
-            setPresets(state.presets);
-          }
-          if (typeof state.isMuted === "boolean") {
-            setIsMuted(state.isMuted);
-          }
-          if (THEME_OPTIONS.includes(state.themeMode)) {
-            setThemeMode(state.themeMode);
+        // Roles are always authoritative from the backend (global across devices)
+        if (state.rolesData && typeof state.rolesData === "object") {
+          setRoles(state.rolesData);
+          const backendRole = state.currentRole || "Yarin";
+          setCurrentRole(backendRole);
+          const rd = state.rolesData[backendRole] || {};
+          if (Array.isArray(rd.bankTasks)) setBankTasks(rd.bankTasks);
+          if (Array.isArray(rd.wheelTasks)) setWheelTasks(rd.wheelTasks);
+          if (Array.isArray(rd.presets)) setPresets(rd.presets);
+        } else {
+          const shouldApplyBackend = hasMeaningfulState(state) || !hasLocalMeaningfulState;
+          if (shouldApplyBackend) {
+            if (Array.isArray(state.bankTasks)) setBankTasks(state.bankTasks);
+            if (Array.isArray(state.wheelTasks)) setWheelTasks(state.wheelTasks);
+            if (Array.isArray(state.presets)) setPresets(state.presets);
           }
         }
+
+        if (typeof state.rolesPasswordSet === "boolean") {
+          setIsRolesPasswordSet(state.rolesPasswordSet);
+        }
+        if (typeof state.isMuted === "boolean") setIsMuted(state.isMuted);
+        if (THEME_OPTIONS.includes(state.themeMode)) setThemeMode(state.themeMode);
       } catch {
         // Keep local state if backend is unavailable.
       } finally {
@@ -334,13 +338,12 @@ function App() {
       JSON.stringify({
         version: 2,
         currentRole,
-        rolesPassword,
         roles: { ...roles, [currentRole]: { bankTasks, wheelTasks, presets } },
         isMuted,
         themeMode,
       })
     );
-  }, [bankTasks, wheelTasks, presets, isMuted, themeMode, currentRole, roles, rolesPassword]);
+  }, [bankTasks, wheelTasks, presets, isMuted, themeMode, currentRole, roles]);
 
   useEffect(() => {
     if (!backendSyncReady) {
@@ -362,6 +365,8 @@ function App() {
           presets: presets,
           isMuted: isMuted,
           themeMode: themeMode,
+          rolesData: { ...roles, [currentRole]: { bankTasks, wheelTasks, presets } },
+          currentRole: currentRole,
         }),
       }).catch(() => {
         // Keep app responsive when backend sync fails.
@@ -375,7 +380,7 @@ function App() {
         backendSaveTimeoutRef.current = null;
       }
     };
-  }, [backendSyncReady, bankTasks, wheelTasks, presets, isMuted, themeMode]);
+  }, [backendSyncReady, bankTasks, wheelTasks, presets, isMuted, themeMode, currentRole, roles]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -982,7 +987,7 @@ function App() {
     setRoleModalPasswordInput("");
     setRoleModalError("");
     setPendingRoleAction({ type: "add" });
-    setRoleModalStep(rolesPassword ? "verify-password" : "set-password");
+    setRoleModalStep(isRolesPasswordSet ? "verify-password" : "set-password");
   }
 
   function startDeleteRole(name) {
@@ -990,31 +995,55 @@ function App() {
     setRoleModalPasswordInput("");
     setRoleModalError("");
     setPendingRoleAction({ type: "delete", name });
-    setRoleModalStep(rolesPassword ? "verify-password" : "set-password");
+    setRoleModalStep(isRolesPasswordSet ? "verify-password" : "set-password");
   }
 
-  function confirmSetPassword() {
+  async function confirmSetPassword() {
     const pw = roleModalPasswordInput.trim();
     const confirm = roleModalInput.trim();
     if (!pw) { setRoleModalError("Enter a password."); return; }
     if (pw !== confirm) { setRoleModalError("Passwords do not match."); return; }
-    setRolesPassword(pw);
-    setRoleModalPasswordInput("");
-    setRoleModalInput("");
-    setRoleModalError("");
-    if (pendingRoleAction?.type === "add") setRoleModalStep("new-name");
-    else if (pendingRoleAction?.type === "delete") confirmDeleteRole(pendingRoleAction.name);
+    try {
+      const res = await fetch("/api/roles/set-password/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setRoleModalError(err.error || "Failed to save password.");
+        return;
+      }
+      setIsRolesPasswordSet(true);
+      setRoleModalPasswordInput("");
+      setRoleModalInput("");
+      setRoleModalError("");
+      if (pendingRoleAction?.type === "add") setRoleModalStep("new-name");
+      else if (pendingRoleAction?.type === "delete") confirmDeleteRole(pendingRoleAction.name);
+    } catch {
+      setRoleModalError("Connection error. Try again.");
+    }
   }
 
-  function verifyRolesPassword() {
-    if (roleModalPasswordInput !== rolesPassword) { setRoleModalError("Wrong password."); return; }
-    setRoleModalPasswordInput("");
-    setRoleModalError("");
-    if (pendingRoleAction?.type === "add") {
-      setRoleModalInput("");
-      setRoleModalStep("new-name");
-    } else if (pendingRoleAction?.type === "delete") {
-      confirmDeleteRole(pendingRoleAction.name);
+  async function verifyRolesPassword() {
+    try {
+      const res = await fetch("/api/roles/verify-password/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: roleModalPasswordInput }),
+      });
+      const data = await res.json();
+      if (!data.valid) { setRoleModalError("Wrong password."); return; }
+      setRoleModalPasswordInput("");
+      setRoleModalError("");
+      if (pendingRoleAction?.type === "add") {
+        setRoleModalInput("");
+        setRoleModalStep("new-name");
+      } else if (pendingRoleAction?.type === "delete") {
+        confirmDeleteRole(pendingRoleAction.name);
+      }
+    } catch {
+      setRoleModalError("Connection error. Try again.");
     }
   }
 
