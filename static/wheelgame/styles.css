@@ -193,7 +193,12 @@ body.theme-night {
   min-width: 210px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 6px dashed var(--accent);
+  border: 5px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 0 0 5px var(--accent),
+    0 0 0 8px rgba(255, 255, 255, 0.65),
+    0 0 0 13px var(--accent-2),
+    0 8px 32px rgba(0, 0, 0, 0.22);
   position: relative;
   overflow: hidden;
   text-align: center;
@@ -206,6 +211,29 @@ body.theme-night {
 
 .placeholder-wheel:active {
   transform: scale(0.98);
+}
+
+@keyframes ring-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 5px var(--accent),
+      0 0 0 8px rgba(255, 255, 255, 0.65),
+      0 0 0 13px var(--accent-2),
+      0 0 0 20px rgba(255, 45, 149, 0.35),
+      0 8px 32px rgba(0, 0, 0, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px var(--accent-2),
+      0 0 0 9px rgba(255, 255, 255, 0.85),
+      0 0 0 14px var(--accent),
+      0 0 0 24px rgba(255, 214, 10, 0.4),
+      0 8px 40px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.placeholder-wheel.is-spinning {
+  animation: ring-glow 0.7s ease-in-out infinite;
 }
 
 .sky-deco {

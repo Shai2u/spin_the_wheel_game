@@ -1355,7 +1355,7 @@ function App() {
 
         <div
           ref={wheelRef}
-          className={`placeholder-wheel ${wheelDropActive ? "drop-active" : ""}`}
+          className={`placeholder-wheel ${wheelDropActive ? "drop-active" : ""} ${isSpinning ? "is-spinning" : ""}`}
           data-help="wheel"
           onPointerDown={onWheelPointerDown}
           onDragOver={(event) => {
